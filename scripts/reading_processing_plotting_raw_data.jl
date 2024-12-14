@@ -26,7 +26,7 @@ t = t[!, 1]
 # iterating over the measurements table and extracting the data as Dataframes.
 measurements = ["NO3 (mg L)", "DOC (mg L)", "SO4 (mg L)", "NH4 (mg L)", "N2O (ppm)", "NO2- (mg L)"]
 meas_names = ["NO3-", "DOC", "SO4-2", "NH4+", "N2O", "NO2-"]
-molar_masses = [62.0049, 12.0107, 96.06, 18.038, 44.013e3, 46.0055]
+molar_masses = [62.0049, 12.0107, 96.06, 18.038, 44.013, 46.0055]
 colors = [:blue, :green, :red, :purple, :orange, :brown]
 dfs = []
 for (j,measurement) in enumerate(measurements)
@@ -41,13 +41,24 @@ for (j,measurement) in enumerate(measurements)
     # replace missing values with NaNs
     df = coalesce.(df, missing)
     # divide by the molar masses
-    try
+    if measurement != "N2O (ppm)"
         df = df ./ molar_masses[j]
-    catch
-        println("Could not divide by molar mass for $(measurement)")
+    else
+        p = df./10^6 # partial pressure in atm (ppm to atm)
+        R = 0.0821 # atm L / mol K
+        T = 298.15 # K
+        V = 0.02 # L
+        n = p .* (V / (R * T))
+        k_h = 0.024 # mol L⁻¹ atm⁻¹ henry's law constant
+        C_w = p .* k_h # mol L⁻¹ water Concentration in equilibrium with the gas phase
+        V_w = 0.08 # L water volume
+        n_w = C_w .* V_w # mol of N2O in the water
+        df = (n .+ n_w)./V_w .*1e3 # mmol L⁻¹ total N2O concentration
     end
     push!(dfs, df)
 end
+# save info df to csv
+CSV.write(datadir("exp_pro","sample_info.csv"), info)
 # transpose the dataframes
 for sample in samples
     df_sample = DataFrame(t = t)
@@ -83,3 +94,4 @@ for sample in samples
     axislegend(ax, position = :rt, merge = true)
     save(plotsdir("$(sample)_initial.png"), fig)
 end
+
