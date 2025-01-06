@@ -58,12 +58,12 @@ for sample in samples
         if size(values, 1) == 0
             continue
         end
-        lines!(ax, sol.t, solv[:,i], label = "model - $(meas_name)", color = colors[i], linestyle = :dash,
+        lines!(ax, sol.t, solv[:,i], label = meas_name, color = colors[i], linestyle = :dash,
         linewidth = 2)
         scatter!(ax, ts, values, label = meas_name, color = colors[i], markersize = 10,
         marker = :diamond)
     end
-    axislegend(ax, position = :rb, merge = true)
+    axislegend(ax, position = :rt, merge = true)
     fig
     #save the plots
     save(plotsdir("$(sample)_model.png"), fig)
@@ -71,4 +71,4 @@ for sample in samples
     push!(params, (sample, p[1]))
 end
 
-CSV.write(datadir("exp_pro","params.csv"), params)
+CSV.write(datadir("exp_pro","params_const_model.csv"), params)
