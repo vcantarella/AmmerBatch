@@ -2,7 +2,7 @@
 
 julia_version = "1.11.2"
 manifest_format = "2.0"
-project_hash = "c527dcd8f05faa1d91f54005597a21b41313232d"
+project_hash = "c7a150fe1669f82cc5ccc85a12f039524d0c9816"
 
 [[deps.ADTypes]]
 git-tree-sha1 = "72af59f5b8f09faee36b4ec48e014a79210f2f4f"
@@ -1923,6 +1923,26 @@ git-tree-sha1 = "67186a2bc9a90f9f85ff3cc8277868961fb57cbd"
 uuid = "f57f5aa1-a3ce-4bc8-8ab9-96f992907883"
 version = "0.4.3"
 
+[[deps.PRIMA]]
+deps = ["LinearAlgebra", "PRIMA_jll", "Requires", "TypeUtils"]
+git-tree-sha1 = "e28122cbaab93ad6ba46da1bd45915110282bb87"
+uuid = "0a7d04aa-8ac2-47b3-b7a7-9dbd6ad661ed"
+version = "0.2.2"
+
+    [deps.PRIMA.extensions]
+    PRIMACUTEstExt = "CUTEst"
+    PRIMANLPModelsExt = "NLPModels"
+
+    [deps.PRIMA.weakdeps]
+    CUTEst = "1b53aba6-35b6-5f92-a507-53c67d53f819"
+    NLPModels = "a4795742-8479-5a88-8948-cc11e1c8c1a6"
+
+[[deps.PRIMA_jll]]
+deps = ["Artifacts", "CompilerSupportLibraries_jll", "JLLWrappers", "Libdl"]
+git-tree-sha1 = "f7bbf8d5dda12f3f417b350baf82ebf0d190a623"
+uuid = "eead6e0c-2d5b-5641-a95c-b722de96d551"
+version = "0.7.1+0"
+
 [[deps.PackageExtensionCompat]]
 git-tree-sha1 = "fb28e33b8a95c4cee25ce296c817d89cc2e53518"
 uuid = "65ce6f38-6b18-4e1d-a461-8949797d7930"
@@ -2709,6 +2729,17 @@ deps = ["InteractiveUtils", "MacroTools", "Preferences"]
 git-tree-sha1 = "ea3e54c2bdde39062abf5a9758a23735558705e1"
 uuid = "781d530d-4396-4725-bb49-402e4bee1e77"
 version = "1.4.0"
+
+[[deps.TypeUtils]]
+deps = ["Requires"]
+git-tree-sha1 = "5f6db2d343c85fb3a68385ec4cd1bc6f1ed41966"
+uuid = "c3b1956e-8857-4d84-9b79-890df85b1e67"
+version = "1.4.0"
+weakdeps = ["OffsetArrays", "Unitful"]
+
+    [deps.TypeUtils.extensions]
+    TypeUtilsOffsetArraysExt = "OffsetArrays"
+    TypeUtilsUnitfulExt = "Unitful"
 
 [[deps.URIs]]
 git-tree-sha1 = "67db6cc7b3821e19ebe75791a9dd19c9b1188f2b"
