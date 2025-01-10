@@ -10,7 +10,13 @@ using OrdinaryDiffEq
 using CairoMakie
 colors = [:blue, :green, :red]
 meas_names = ["NO3-", "DOC", "SO4-2"]
-samples = ["A301", "A302", "A303", "A306"]
+samples = ["A301", "A302", "A303", "A306", "A907"]
+R = 0.0821 # atm L / mol K
+T = 298.15 # K
+Kh = 0.025 # mol L⁻¹ atm⁻¹ henry's law constant
+H = 1/(Kh*R*T) # dimensionless henry's law constant
+
+# Defining model callbacks, where the dilution occurs
 
 params = DataFrame(sample = String[], r_no3 = Float64[])
 for sample in samples
@@ -18,20 +24,24 @@ for sample in samples
     df = CSV.read(datadir("exp_pro","$(sample).csv"), DataFrame)
     doc_mean = mean(skipmissing(df[!, :DOC]))
     # n2o_mean = mean(skipmissing(df[!, :N2O]))   
-    so4_mean = mean(skipmissing(df[!, "SO4-2"]))
-    
+    # so4_mean = mean(skipmissing(df[!, "SO4-2"]))
+
     # Define the initial conditions
     u0 = [df[1, "NO3-"], doc_mean, so4_mean]
-    p = [0.01]
+    p = [0.01, 0.01, H]
     tspan = (0, maximum(df[!, :t]))
     # define the cost function
     obs = convert.(Float64,skipmissing(df[!, "NO3-"]))
+    obs_n2o = convert.(Float64,skipmissing(df[!, "N2O"]))
     idxs = findall(!ismissing, df[!, "NO3-"])
+    idxs_n2o = findall(!ismissing, df[!, "N2O"])
     function cost(p)
         prob = ODEProblem(const_denitrification, u0, tspan, p)
-        sol = solve(prob, Tsit5(), saveat=df[idxs, :t])
+        sol = solve(prob, Tsit5(), saveat=df[:, :t])
         solv = vcat(sol.u'...)
-        residuals = obs .- solv[:, 1]
+        residuals = obs .- solv[idxs, 1]
+        residuals_n2o = obs_n2o .- solv[idxs_n2o, 5]
+
         return sum(abs2, residuals)
     end
     # optimize the parameters

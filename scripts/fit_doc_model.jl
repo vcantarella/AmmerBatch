@@ -12,7 +12,7 @@ colors = [:blue, :green, :red]
 meas_names = ["NO3-", "DOC", "SO4-2"]
 samples = ["A308", "A310", "A402","A403", "A405", "A406", "A502", "A503",
            "A504", "A507", "A508", "A509", "A510","A603", "A604",
-           "A904", "A905", "A906", "A907", "A908"]
+           "A904", "A905", "A906", "A908"]
 
 params = DataFrame(sample = String[], r_no3 = Float64[], r_doc = Float64[], αˡ = Float64[],
                    c_eq = Float64[], K_doc = Float64[], K_no3 = Float64[], doc_f = Float64[],

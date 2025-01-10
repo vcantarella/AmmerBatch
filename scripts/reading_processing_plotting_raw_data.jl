@@ -44,16 +44,16 @@ for (j,measurement) in enumerate(measurements)
     if measurement != "N2O (ppm)"
         df = df ./ molar_masses[j]
     else
-        p = df./10^6 # partial pressure in atm (ppm to atm)
-        R = 0.0821 # atm L / mol K
-        T = 298.15 # K
-        V = 0.02 # L
-        n = p .* (V / (R * T))
-        k_h = 0.024 # mol L⁻¹ atm⁻¹ henry's law constant
-        C_w = p .* k_h # mol L⁻¹ water Concentration in equilibrium with the gas phase
-        V_w = 0.08 # L water volume
-        n_w = C_w .* V_w # mol of N2O in the water
-        df = (n .+ n_w)./V_w .*1e3 # mmol L⁻¹ total N2O concentration
+        df = df./10^6 # partial pressure in atm (ppm to atm)
+        # R = 0.0821 # atm L / mol K
+        # T = 298.15 # K
+        # V = 0.02 # L
+        # n = p .* (V / (R * T)) # mol total N2O concentration in the gas phase (headspace)
+        # k_h = 0.025 # mol L⁻¹ atm⁻¹ henry's law constant
+        # C_w = p .* k_h # mol L⁻¹ water Concentration in equilibrium with the gas phase
+        # V_w = 0.08 # L water volume
+        # n_w = C_w .* V_w # mol of N2O in the water
+        # df = (n .+ n_w)./V_w .*1e3 # mmol L⁻¹ total N2O concentration in water considering both gas and liquid phases
     end
     push!(dfs, df)
 end
