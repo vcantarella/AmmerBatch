@@ -4,21 +4,31 @@ using DrWatson
 # Here you may include files from the source directory
 include(srcdir("const_no3.jl"))
 using DataFrames, CSV
+using LinearAlgebra
 using PRIMA
 using Statistics
 using OrdinaryDiffEq
 using CairoMakie
-colors = [:blue, :green, :red]
-meas_names = ["NO3-", "DOC", "SO4-2"]
+colors = [:blue, :green, :orange]
+meas_names = ["NO3-", "DOC", "N2O"]
 samples = ["A301", "A302", "A303", "A306", "A907"]
 R = 0.0821 # atm L / mol K
 T = 298.15 # K
 Kh = 0.025 # mol L⁻¹ atm⁻¹ henry's law constant
-H = 1/(Kh*R*T) # dimensionless henry's law constant
+# reaction rate model
+rhs!(du, u, p, t) = const_denitrification(du, u, p, t, Kh)
+
+function find_first_indices(times, target_times)
+    indices = []
+    for target_time in target_times
+        push!(indices, findfirst(t -> t == target_time, times))
+    end
+    return indices
+end
 
 # Defining model callbacks, where the dilution occurs
 
-params = DataFrame(sample = String[], r_no3 = Float64[])
+params = DataFrame(sample = String[], r_no3 = Float64[], r_n2o = Float64[], r_g = Float64[])
 for sample in samples
     # Load the data
     df = CSV.read(datadir("exp_pro","$(sample).csv"), DataFrame)
@@ -27,44 +37,74 @@ for sample in samples
     # so4_mean = mean(skipmissing(df[!, "SO4-2"]))
 
     # Define the initial conditions
-    u0 = [df[1, "NO3-"], doc_mean, so4_mean]
-    p = [0.01, 0.01, H]
+    u0 = [df[1, "NO3-"].*1e-3, doc_mean.*1e-3, Kh*df[1, "N2O"], df[1, "N2O"], 0.08, 0.02]
+    p = [0.005*1e-3, 0.001*1e-3, 0.1]
     tspan = (0, maximum(df[!, :t]))
     # define the cost function
-    obs = convert.(Float64,skipmissing(df[!, "NO3-"]))
+    obs = convert.(Float64,skipmissing(df[!, "NO3-"])).*1e-3
     obs_n2o = convert.(Float64,skipmissing(df[!, "N2O"]))
     idxs = findall(!ismissing, df[!, "NO3-"])
     idxs_n2o = findall(!ismissing, df[!, "N2O"])
+    t_liquid = df[idxs, :t]
+    t_g = df[idxs_n2o, :t]
+    tstops = union(t_liquid, t_g)
+    # sort tstops
+    sort!(tstops)
+    sampling_callback_condition(u, t, integrator) = t ∈ t_liquid
+    dilution_callback_condition(u, t, integrator) = t ∈ t_g
+    function sampling_affect!(integrator)
+        Vg_old = integrator.u[6]
+        Vw_old = integrator.u[5]
+        Vg_new = Vg_old + 0.005
+        integrator.u[4] = integrator.u[4] * (Vg_old / Vg_new)
+        integrator.u[6] = Vg_new
+        integrator.u[5] = Vw_old - 0.005
+    end
+    function dilution_affect!(integrator)
+        Vg_old = integrator.u[6]
+        integrator.u[4] = integrator.u[4] * (1-0.005/Vg_old)
+    end
+    cb_sampling = DiscreteCallback(sampling_callback_condition, sampling_affect!)
+    cb_dilution = DiscreteCallback(dilution_callback_condition, dilution_affect!)
+    cb = CallbackSet(cb_sampling, cb_dilution)
     function cost(p)
-        prob = ODEProblem(const_denitrification, u0, tspan, p)
-        sol = solve(prob, Tsit5(), saveat=df[:, :t])
+        prob = ODEProblem(rhs!, u0, tspan, p)
+        sol = solve(prob, Tsit5(), saveat=df[:, :t], callback = cb,
+         tstops = tstops, abstol = 1e-8, reltol = 1e-9, maxiters = 10000)
         solv = vcat(sol.u'...)
-        residuals = obs .- solv[idxs, 1]
-        residuals_n2o = obs_n2o .- solv[idxs_n2o, 5]
-
-        return sum(abs2, residuals)
+        idx_no3 = find_first_indices(sol.t, df[idxs, :t])
+        residuals = obs .- solv[idx_no3, 1]
+        idx_n20 = find_first_indices(sol.t, df[idxs_n2o, :t])
+        residuals_n2o = obs_n2o .- solv[idxs_n2o, 4]
+        return sum(abs2, residuals) + sum(abs2, residuals_n2o)
     end
     # optimize the parameters
-    res = PRIMA.uobyqa(cost, p,)
+    lb = ones(length(p)).*1e-9
+    ub = [0.1e-3, 0.1e-3, 10]
+    scale = norm(p) ./p
+    res = PRIMA.bobyqa(cost, p, scale = scale,
+        xl = lb, xu = ub, rhobeg = 1e-16)
     p = res[1]
     # solve the ODE
-    prob = ODEProblem(const_denitrification, u0, tspan, p)
-    sol = solve(prob, Tsit5(), saveat=df[!, :t])
+    prob = ODEProblem(rhs!, u0, tspan, p)
+    sol = solve(prob, Tsit5(), saveat=df[:, :t], callback = cb,
+         tstops = tstops, abstol = 1e-8, reltol = 1e-9, maxiters = 10000)
     solv = vcat(sol.u'...)
     # Plot the data for each sample
     fig = Figure()
     ax = Axis(fig[1, 1], xlabel = "Time (days)", ylabel = "Concentration (mmol L⁻¹)",
     title = "$(sample) Model Results",
-    xticks = 0:10:170, yticks = 0:0.5:4,
+    #xticks = 0:10:170, yticks = 0:0.5:4,
     xgridstyle = :dash, ygridstyle = :dash,
-    xgridwidth = 0.4, ygridwidth = 0.4,)
-    xlims!(ax,(-2, 180))
-    ylims!(ax,(-0.1, u0[1]+0.4))
+    #xgridwidth = 0.4, ygridwidth = 0.4,
+    )
+    #xlims!(ax,(-2, 180))
+    #ylims!(ax,(-0.1, u0[1]+0.4))
     for (i, meas_name) in enumerate(meas_names)
         missing_idx = findall(ismissing, df[!,Symbol(meas_name)])
         ts = df[!,:t][setdiff(1:end, missing_idx)]
         values = df[setdiff(1:end, missing_idx), Symbol(meas_name)]
-        values = convert.(Float64, values)
+        values = convert.(Float64, values).*1e-3
         if size(values, 1) == 0
             continue
         end
@@ -78,7 +118,7 @@ for sample in samples
     #save the plots
     save(plotsdir("$(sample)_model.png"), fig)
     #save the parameters
-    push!(params, (sample, p[1]))
+    push!(params, (sample, p[1], p[2], p[3]))
 end
 
 CSV.write(datadir("exp_pro","params_const_model.csv"), params)

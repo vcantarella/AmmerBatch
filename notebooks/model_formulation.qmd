@@ -1,0 +1,100 @@
+---
+title: "Model Formulation"
+format:
+  html:
+    toc: true
+    toc-depth: 2
+  pdf:
+    documentclass: article
+    toc: false
+    toc-depth: 2
+    geometry: margin=1in
+    fontsize: 11pt
+    header-includes:
+      - \usepackage{fancyhdr}
+      - \pagestyle{fancy}
+      - \fancyhead[L]{Model Formulation}
+      - \fancyhead[R]{\thepage}
+      - \usepackage{sectsty}
+      - \sectionfont{\Large\bfseries}
+      - \subsectionfont{\large\bfseries}
+      - \usepackage{hyperref}
+      - \hypersetup{colorlinks=true, linkcolor=blue, filecolor=magenta, urlcolor=cyan}
+---
+
+## ODE Models
+
+There were two alternative formulations envisaged for the observed behaviour of the experiments' concentrations.
+
+1. A simple 0th order model, where denitrification occurs independently of the other variables, and thus was a function of matrix borne solid-phase electron donors.
+
+2. A more complex model, that includes the previous model, but assumes that part of the DOC is bioavailable and reacts with nitrate via Michaelis-Mentem kinetics. This DOC, is also sorbed in the matrix, thus sorbing reactions occur.
+
+### Constant Denitrification Model
+
+The constant denitrification model describes the rate of change of nitrate concentration ($NO_3^-$) over time.
+
+#### Model Rates
+
+- $r_{NO3^-}$ is the zero-order rate of $NO_3^-$ reduction (mol L⁻¹ day⁻¹).  
+- $r_{N2O}$ is the rate of N2O consumption (mol L⁻¹ day⁻¹).  
+- $r_{g}$ is the gas exchange rate (mol L⁻¹ day⁻¹).  
+
+#### Differential Equations
+
+$$
+\frac{d[NO_3^-]}{dt} = -r_{NO3^-}
+$$
+
+$$
+\frac{d[N2O_{water}]}{dt} = \frac{1}{2}r_{NO3^-} - r_{N2O} + r_{g}(c_{g}H - c_{w})
+$$
+
+$$
+\frac{d[N2O_{gas}]}{dt} = -\frac{r_{g}(c_{g}H - c_{w})}{H}
+$$
+
+where:  
+- $c_{g}$ is the gas concentration of N2O in ppmv.  
+- $c_{w}$ is the concentration of N2O in water (mol/L).  
+- $H$ is Henry's law constant for N2O (mol /(L atm)).  
+
+### DOC and NO3- Dynamics Model
+
+The $DOC$ and $NO3^-$ dynamics model describes the rates of change of nitrate ($NO_3^-$), labile dissolved organic carbon ($DOC^l$), and sorbed $DOC$ concentrations over time.
+
+#### Model Rates
+
+- $r_{NO3^-}$ is the zero-order rate of $NO_3^-$ reduction (mmol L⁻¹ day⁻¹).
+- $r_{DOC}$ is the rate of DOC denitrification by Michaelis-Menten kinetics, given by:
+
+$$
+r_{DOC} = r_{DOC^l}^{max} \frac{[DOC^l]}{K_{DOC} + [DOC^l]} \cdot \frac{[NO_3^-]}{K_{NO3^-} + [NO_3^-]}
+$$
+
+- $r_{transfer}$ is the first-order rate of DOC transfer to the sorbed phase, given by:
+
+$$
+r_{transfer} = \alpha \cdot (c_{eq} - [DOC^l]) \cdot \tanh([\text{sorbed DOC}])
+$$
+
+- $r_{DOC}^{max}$ is the maximum rate of DOC denitrification (mmol L⁻¹ day⁻¹).
+- $\alpha$ is the first-order rate constant for DOC transfer to the sorbed phase (day⁻¹).
+- $c_{eq}$ is the equilibrium concentration of labile DOC in water (mmol L⁻¹), given by $c_{eq} = K_d \cdot [\text{sorbed DOC}]$.
+- $K_{DOC}$ and $K_{NO3}$ are the half-saturation constants for DOC and $NO_3^-$ respectively (mmol L⁻¹).
+- $[DOC^l]$ and $[NO_3^-]$ are the concentrations of DOC and $NO_3^-$ respectively (mmol L⁻¹).
+- $[\text{sorbed DOC}]$ is the concentration of sorbed DOC (mmol L⁻¹).
+
+#### Differential Equations
+
+$$
+\frac{d[NO_3^-]}{dt} = -r_{NO3} - r_{DOC}
+$$
+
+$$
+\frac{d[DOC^l]}{dt} = -\frac{5}{4} r_{DOC} + r_{transfer}
+$$
+
+$$
+\frac{d[\text{sorbed DOC}]}{dt} = -r_{transfer}
+$$
