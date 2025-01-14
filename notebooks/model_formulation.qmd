@@ -59,6 +59,10 @@ where:
 - $c_{w}$ is the concentration of N2O in water (mol/L).  
 - $H$ is Henry's law constant for N2O (mol /(L atm)).  
 
+#### Examples
+
+
+
 ### DOC and NO3- Dynamics Model
 
 The $DOC$ and $NO3^-$ dynamics model describes the rates of change of nitrate ($NO_3^-$), labile dissolved organic carbon ($DOC^l$), and sorbed $DOC$ concentrations over time.
