@@ -28,15 +28,17 @@ This function represents the right-hand side (RHS) of an ordinary differential e
 function const_denitrification(du, u, p, t, H)
     r_no3 = p[1]
     r_n2o = p[2]
-    r_g = p[3]
+    r_g = 1e-1
+    K_n20 = p[3]
     Vw = u[5]
     Vg = u[6]
     c_g = u[4] # gas concentration of N2O in ppmv
     c_w = u[3] # concentration of N2O in water (mol/L)
+    no3 = u[1]
     gas_rate = r_g*(c_g*H - c_w)
-    r_n2o = IfElse.ifelse(c_w > 0., r_n2o, 0.)
-    r_no3 = IfElse.ifelse(u[1] > 0., r_no3, 0.)
+    rate_n2o = r_n2o*c_w/(K_n20 + c_w)
+    r_no3 = IfElse.ifelse(no3 > 0., r_no3, 0.)
     du[1] = -r_no3
-    du[3] = 1/2*r_no3 - r_n2o + gas_rate/H
-    du[4] = -gas_rate
+    du[3] = 1/2*r_no3 - rate_n2o + gas_rate
+    du[4] = -gas_rate/H
 end

@@ -38,7 +38,7 @@ for sample in samples
 
     # Define the initial conditions
     u0 = [df[1, "NO3-"].*1e-3, doc_mean.*1e-3, Kh*df[1, "N2O"], df[1, "N2O"], 0.08, 0.02]
-    p = [0.005*1e-3, 0.001*1e-3, 0.1]
+    p = [6e-6, 5e-5, 1e-4]
     tspan = (0, maximum(df[!, :t]))
     # define the cost function
     obs = convert.(Float64,skipmissing(df[!, "NO3-"])).*1e-3
@@ -55,14 +55,14 @@ for sample in samples
     function sampling_affect!(integrator)
         Vg_old = integrator.u[6]
         Vw_old = integrator.u[5]
-        Vg_new = Vg_old + 0.005
+        Vg_new = Vg_old + 0.004
         integrator.u[4] = integrator.u[4] * (Vg_old / Vg_new)
         integrator.u[6] = Vg_new
-        integrator.u[5] = Vw_old - 0.005
+        integrator.u[5] = Vw_old - 0.004
     end
     function dilution_affect!(integrator)
         Vg_old = integrator.u[6]
-        integrator.u[4] = integrator.u[4] * (1-0.005/Vg_old)
+        integrator.u[4] = integrator.u[4] * (1-0.004/Vg_old)
     end
     cb_sampling = DiscreteCallback(sampling_callback_condition, sampling_affect!)
     cb_dilution = DiscreteCallback(dilution_callback_condition, dilution_affect!)
@@ -70,20 +70,21 @@ for sample in samples
     function cost(p)
         prob = ODEProblem(rhs!, u0, tspan, p)
         sol = solve(prob, Tsit5(), saveat=df[:, :t], callback = cb,
-         tstops = tstops, abstol = 1e-8, reltol = 1e-9, maxiters = 10000)
+         tstops = tstops, abstol = 1e-9, reltol = 1e-9, maxiters = 10000)
         solv = vcat(sol.u'...)
         idx_no3 = find_first_indices(sol.t, df[idxs, :t])
         residuals = obs .- solv[idx_no3, 1]
         idx_n20 = find_first_indices(sol.t, df[idxs_n2o, :t])
         residuals_n2o = obs_n2o .- solv[idxs_n2o, 4]
-        return sum(abs2, residuals) + sum(abs2, residuals_n2o)
+        return sum(abs2, residuals) + sum(abs2, residuals_n2o)*1e1
     end
     # optimize the parameters
-    lb = ones(length(p)).*1e-9
-    ub = [0.1e-3, 0.1e-3, 10]
-    scale = norm(p) ./p
-    res = PRIMA.bobyqa(cost, p, scale = scale,
-        xl = lb, xu = ub, rhobeg = 1e-16)
+    lb = ones(length(p)).*1e-10
+    ub = [1e-4, 1e-1, 1e-3]
+    scale = 1 ./p
+    res = PRIMA.bobyqa(cost, p,
+        scale = scale,
+        xl = lb, xu = ub, rhobeg = 1e-0)
     p = res[1]
     # solve the ODE
     prob = ODEProblem(rhs!, u0, tspan, p)
@@ -98,20 +99,29 @@ for sample in samples
     xgridstyle = :dash, ygridstyle = :dash,
     #xgridwidth = 0.4, ygridwidth = 0.4,
     )
+    ax2 = Axis(fig[1, 1], yaxisposition = :right, ygridvisible = false,
+     xgridvisible = false, ylabelcolor = :orange, ylabel = "N2O [atm]")
     #xlims!(ax,(-2, 180))
     #ylims!(ax,(-0.1, u0[1]+0.4))
     for (i, meas_name) in enumerate(meas_names)
         missing_idx = findall(ismissing, df[!,Symbol(meas_name)])
         ts = df[!,:t][setdiff(1:end, missing_idx)]
         values = df[setdiff(1:end, missing_idx), Symbol(meas_name)]
-        values = convert.(Float64, values).*1e-3
+        values = convert.(Float64, values)
         if size(values, 1) == 0
             continue
         end
-        lines!(ax, sol.t, solv[:,i], label = meas_name, color = colors[i], linestyle = :dash,
-        linewidth = 2)
-        scatter!(ax, ts, values, label = meas_name, color = colors[i], markersize = 10,
-        marker = :diamond)
+        if meas_name == "N2O"
+            lines!(ax2, sol.t, solv[:,4], label = meas_name, color = colors[i], linestyle = :dash,)
+            scatter!(ax2, ts, values, label = meas_name, color = colors[i], markersize = 10,
+            marker = :diamond)
+        else
+            values = values.*1e-3
+            lines!(ax, sol.t, solv[:,i], label = meas_name, color = colors[i], linestyle = :dash,
+                linewidth = 2)
+            scatter!(ax, ts, values, label = meas_name, color = colors[i], markersize = 10,
+                marker = :diamond)
+        end
     end
     axislegend(ax, position = :rt, merge = true)
     fig
