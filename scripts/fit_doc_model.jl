@@ -19,13 +19,16 @@ R = 0.0821 # atm L / mol K
 T = 298.15 # K
 Kh = 0.025 # mol L⁻¹ atm⁻¹ henry's law constant
 df_info = CSV.read(datadir("exp_pro","sample_info.csv"), DataFrame)
-rhs!(du, u, p, t) = doc_model!(du, u, p, t, Kh)
+rhs!(du, u, p, t) = doc_model!(du, u, p, t, Kh) # importing the model!!
+
 params = DataFrame(sample = String[], r_no3 = Float64[],
                    r_doc = Float64[], r_n2o = Float64[], αˡ = Float64[],
                    c_eq = Float64[], K_doc = Float64[], K_no3 = Float64[],
                    K_n2o = Float64[], doc_f = Float64[],
                    doc_0 = Float64[])
 
+# I need this function to find the indices of the time points where the samples were taken.
+# then I can compare the model results with the data in the cost function.
 function find_first_indices(times, target_times)
     indices = []
     for target_time in target_times
@@ -34,33 +37,49 @@ function find_first_indices(times, target_times)
     return indices
 end
 
+
+
+
+# For the fit to work, we need good initial conditions for each sample.
+
 for sample in samples
     # Load the data
     df = CSV.read(datadir("exp_pro","$(sample).csv"), DataFrame)
-    weight = df_info[df_info[!, :Sample] .== sample, "dry weight (g)"][1]
-    doc_min = minimum(skipmissing(df[!, :DOC]))
-    doc_max = maximum(skipmissing(df[!, :DOC]))
+    weight = df_info[df_info[!, :Sample] .== sample, "dry weight (g)"][1]*1e-3
+    doc_min = minimum(skipmissing(df[!, :DOC]))*1e-3
+    doc_max = maximum(skipmissing(df[!, :DOC]))*1e-3
     #so4_mean = mean(skipmissing(df[!, "SO4-2"]))
-    doc_0 = 2
-    Kd = doc_0/(doc_max-doc_min)
+    Kd = 1e-4
+    doc_f = doc_min
+    doc_0 = Kd*(df[1, :DOC].*1e-3-doc_f)
     # Define the initial conditions
-    u0 = [df[1, "NO3-"].*1e-3, df[1, :DOC].*1e-3, 0.,0., 0.08, 0.02, doc_0, weight]
-    model_p = [6e-6, 1e-6, 1e-3, 1e-3, 1e-5, 1e-5, 5e-6, 1e-4]
-    model_p_min = ones(length(model_p)).*1e-10
-    model_p_max = ones(length(model_p)).*1e-3
+    u0 = [df[1, "NO3-"].*1e-3, df[1, :DOC].*1e-3-doc_f, 0.,0., 0.08, 0.02, doc_0, weight]
+    # Define the model parameters
+    model_p = [2e-6, 1e-5, 1e-2, Kd, 1e-6, 1e-6, 1e-5, 1e-5]
+    model_p_min = [1e-8, 1e-8, 1e-5, 1e-5, 1e-7, 1e-8, 1e-8, 1e-8]
+    model_p_max = [1e-2, 1e-2, 10, 8e-4, 1e-3, 1e-3, 1e-4, 1e-3]
     tspan = (0, maximum(df[!, :t]))
     # define the cost function
+    ## osberved values
     obs_n = convert.(Float64,skipmissing(df[!, "NO3-"])).*1e-3
     obs_c = convert.(Float64,skipmissing(df[!, "DOC"])).*1e-3
     obs_n2o = convert.(Float64,skipmissing(df[!, "N2O"]))
+    ## indices of observed values
     idxs_n = findall(!ismissing, df[!, "NO3-"])
     idxs_c = findall(!ismissing, df[!, "DOC"])
     idxs_n2o = findall(!ismissing, df[!, "N2O"])
+    # time points where the liquid and gas samples were taken
     t_liquid = df[idxs_n, :t]
     t_g = df[idxs_n2o, :t]
     tstops = union(t_liquid, t_g)
     # sort tstops
     sort!(tstops)
+
+    ## Defining callbacks. These callbacks model when a sample is taken.
+    ## When a liquid sample is taken, V of water decreases and V of gas increases.
+    ## Does the gas phase concentration is diluted.
+    ## When a gas sample is taken. Local gas is diluted by N2 atmosphere.
+    ## Callbacks alter the integrator according to DifferentialEquations.jl
     sampling_callback_condition(u, t, integrator) = t ∈ t_liquid
     dilution_callback_condition(u, t, integrator) = t ∈ t_g
     function sampling_affect!(integrator)
@@ -78,20 +97,23 @@ for sample in samples
     cb_sampling = DiscreteCallback(sampling_callback_condition, sampling_affect!)
     cb_dilution = DiscreteCallback(dilution_callback_condition, dilution_affect!)
     cb = CallbackSet(cb_sampling, cb_dilution)
+
+    ## Defining the ODEProblem and solving it!.
     problem = ODEProblem(rhs!, u0, tspan, model_p)
     sol = solve(problem, Tsit5(), saveat=df[!, :t],
      callback = cb, tstops = tstops,
      abstol = 1e-9, reltol = 1e-9, maxiters = 10000)
-    p = [doc_0*1e-3, doc_min*1e-3, model_p...]
-    xl = [0, (doc_min-0.2)*1e-3, model_p_min...]
-    xu = [4*1e-3, (df[1, :DOC]-0.1)*1e-3, model_p_max...]
+    # the full parameter set is the model parameters + the refractory doc
+    p = [doc_min, model_p...]
+    xl = [0., model_p_min...]
+    xu = [(df[1, :DOC]-0.1)*1e-3, model_p_max...]
     function cost(p)
-        doc_0 = p[1]
-        doc_f = p[2]
-        model_p = p[3:end]
-        u0 = [df[1, "NO3-"].*1e-3, df[1, :DOC].*1e-3, 0.,0., 0.08, 0.02, doc_0, weight]
+        doc_f = p[1]
+        model_p = p[2:end]
+        Kd = model_p[4]
+        u0 = [df[1, "NO3-"].*1e-3, (df[1, :DOC]*1e-3-doc_f), 0.,0., 0.08, 0.02,Kd*(df[1, :DOC]*1e-3-doc_f), weight]
         prob = remake(problem; u0 = u0, p = model_p)
-        sol = solve(prob, Tsit5(), saveat=df[!, :t],
+        sol = solve(prob, Vern7(), saveat=df[!, :t],
             callback = cb, tstops = tstops,
             abstol = 1e-9, reltol = 1e-9, maxiters = 10000)
         solv = vcat(sol.u'...)
@@ -101,26 +123,30 @@ for sample in samples
         residuals_c = obs_c .-  doc_f .- solv[idx_doc, 2]
         idx_n2o = find_first_indices(sol.t, df[idxs_n2o, :t])
         residuals_n2o = obs_n2o .- solv[idx_n2o, 4]
-        return sum(abs2, residuals_n) + sum(abs2, residuals_c) + sum(abs2, residuals_n2o)
+        return sum(abs2, residuals_n) + sum(abs2, residuals_c) + sum(abs2, residuals_n2o)*0.1
     end
     grad(p) = ForwardDiff.gradient(cost, p)
     hess(p) = ForwardDiff.hessian(cost, p)
-    res = nonlinearlstr.bounded_trust_region(cost, grad, hess, p, xl, xu, initial_radius = 1e-6, gtol = 1e-12, min_trust_radius = 1e-12)
+    hesfake(p) = -1.
+    # res = nonlinearlstr.bounded_trust_region(cost, grad, hess,
+    #  p, xl, xu, initial_radius = 1e-5, gtol = 1e-7, min_trust_radius = 1e-7)
     # optimize the parameters
-    # res = PRIMA.bobyqa(cost, p, xl = xl, xu = xu)
+    res = PRIMA.bobyqa(cost, p, xl = xl, xu = xu, rhobeg = 1e-9, iprint = PRIMA.MSG_RHO)
     p = res[1]
     # solve the ODE
-    doc_0 = p[1]
-    doc_f = p[2]
-    u0 = [df[1, "NO3-"].*1e-3, df[1, :DOC].*1e-3, 0.,0., 0.08, 0.02, doc_0, weight]
-    model_p = p[3:end]
+    doc_f = p[1]
+    Kd = p[5]
+    u0 = [df[1, "NO3-"].*1e-3, (df[1, :DOC]*1e-3-doc_f), 0.,0., 0.08, 0.02, (df[1, :DOC]*1e-3-doc_f)*Kd, weight]
+    model_p = p[2:end]
     prob = ODEProblem(rhs!, u0, tspan, model_p)
     sol = solve(prob, Tsit5(), saveat=df[!, :t],
         callback = cb, tstops = tstops,
         abstol = 1e-9, reltol = 1e-9, maxiters = 10000)
     solv = vcat(sol.u'...)
     solv[:, 2] .+= doc_f
-    # Plot the data for each sample
+
+
+    ### Plotting the results and the data fit.
     fig = Figure()
     ax = Axis(fig[1, 1], xlabel = "Time (days)", ylabel = "Concentration (mmol L⁻¹)",
     title = "$(sample) Model Results",

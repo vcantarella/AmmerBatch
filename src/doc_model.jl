@@ -41,8 +41,8 @@ function doc_model!(du, u, p, t, H)
     Vg = u[6]
     mg = u[8]
     # define the rate constants
-    r_no3 = p[1] # zero-order rate of NO3- reduction (mmol L-1 day-1)
-    r_doc = p[2] # max rate of DOC denitrification by Michaelis-Menten kinetics (mmol L-1 day-1)
+    k_no3 = p[1] # zero-order rate of NO3- reduction (mmol L-1 day-1)
+    k_doc = p[2] # max rate of DOC denitrification by Michaelis-Menten kinetics (mmol L-1 day-1)
     αˡ = p[3] # first-order rate of DOC transfer to sorbed phase (day-1)
     Kd = p[4] # equilibrium concentration of labile DOC in water (mmol L-1)
     K_doc = p[5] # half-saturation constant for DOC (mmol L-1)
@@ -51,14 +51,15 @@ function doc_model!(du, u, p, t, H)
     K_n2o = p[8] # half-saturation constant for N2O (mmol L-1)
     c_eq = Kd*doc_s
     # define the rate equations
-    r_doc = r_doc * doc / (K_doc + doc) * no3_ / (K_no3 + no3_)
+    r_doc = k_doc * doc / (K_doc + doc) * no3_ / (K_no3 + no3_)
     r_transfer = αˡ * (c_eq - doc_s)
     r_g = 1e-1
+    r_no3 = k_no3
     gas_rate = r_g*(c_g*H - c_w)
     rate_n2o = r_n2o*c_w/(K_n2o + c_w)
     du[1] = -r_no3 - r_doc
     du[2] = -r_doc - r_transfer*mg/Vw
-    du[3] = 1/2*r_no3 - rate_n2o + gas_rate
+    du[3] = 1/2*(r_no3+r_doc) - rate_n2o + gas_rate
     du[4] = -gas_rate/H
     du[7] = r_transfer
 end
