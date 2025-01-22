@@ -103,11 +103,11 @@ window.Quarto = {
 <h2 class="anchored" data-anchor-id="ode-models">ODE Models</h2>
 <p>There were two alternative formulations envisaged for the observed behaviour of the experiments’ concentrations.</p>
 <ol type="1">
-<li><p>A simple 0th order model, where denitrification occurs independently of the other variables, and thus was a function of matrix borne solid-phase electron donors.</p></li>
+<li><p>A simple 0th order model (constant denitrification rate model), where denitrification occurs independently of the other variables, and thus is a function of matrix solid-phase electron donors.</p></li>
 <li><p>A more complex model, that includes the previous model, but assumes that part of the DOC is bioavailable and reacts with nitrate via Michaelis-Mentem kinetics. This DOC, is also sorbed in the matrix, thus sorbing reactions occur.</p></li>
 </ol>
 <section id="constant-denitrification-model" class="level3">
-<h3 class="anchored" data-anchor-id="constant-denitrification-model">Constant Denitrification Model</h3>
+<h3 class="anchored" data-anchor-id="constant-denitrification-model">1. Constant Denitrification Model</h3>
 <p>The constant denitrification model describes the rate of change of nitrate concentration (<span class="math inline">\(NO_3^-\)</span>) over time.</p>
 <section id="model-rates" class="level4">
 <h4 class="anchored" data-anchor-id="model-rates">Model Rates</h4>
@@ -135,13 +135,10 @@ window.Quarto = {
 - <span class="math inline">\(c_{w}\)</span> is the concentration of N2O in water (mol/L).<br>
 - <span class="math inline">\(H\)</span> is Henry’s law constant for N2O (mol /(L atm)).</p>
 </section>
-<section id="examples" class="level4">
-<h4 class="anchored" data-anchor-id="examples">Examples</h4>
 </section>
-</section>
-<section id="doc-and-no3--dynamics-model" class="level3">
-<h3 class="anchored" data-anchor-id="doc-and-no3--dynamics-model">DOC and NO3- Dynamics Model</h3>
-<p>The <span class="math inline">\(DOC\)</span> and <span class="math inline">\(NO3^-\)</span> dynamics model describes the rates of change of nitrate (<span class="math inline">\(NO_3^-\)</span>), labile dissolved organic carbon (<span class="math inline">\(DOC^l\)</span>), and sorbed <span class="math inline">\(DOC\)</span> concentrations over time.</p>
+<section id="more-complex-model-doc-and-no3--dynamics-model" class="level3">
+<h3 class="anchored" data-anchor-id="more-complex-model-doc-and-no3--dynamics-model">2. More complex model: DOC and NO3- Dynamics Model</h3>
+<p>The <span class="math inline">\(DOC\)</span> and <span class="math inline">\(NO3^-\)</span> dynamics model describes the rates of change of nitrate (<span class="math inline">\(NO_3^-\)</span>), bioavailable dissolved organic carbon (<span class="math inline">\(DOC^l\)</span>), and sorbed <span class="math inline">\(DOC\)</span> concentrations over time.</p>
 <section id="model-rates-1" class="level4">
 <h4 class="anchored" data-anchor-id="model-rates-1">Model Rates</h4>
 <ul>

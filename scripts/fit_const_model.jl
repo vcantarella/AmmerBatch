@@ -9,6 +9,9 @@ using PRIMA
 using Statistics
 using OrdinaryDiffEq
 using CairoMakie
+using ForwardDiff
+using SciMLSensitivity
+using nonlinearlstr
 colors = [:blue, :green, :orange]
 meas_names = ["NO3-", "DOC", "N2O"]
 samples = ["A301", "A302", "A303", "A306", "A907"]
@@ -26,19 +29,32 @@ function find_first_indices(times, target_times)
     return indices
 end
 
+df_info = CSV.read(datadir("exp_pro","sample_info.csv"), DataFrame)
 # Defining model callbacks, where the dilution occurs
 
 params = DataFrame(sample = String[], r_no3 = Float64[], r_n2o = Float64[], r_g = Float64[])
-for sample in samples
+for (k,sample) in enumerate(samples)
     # Load the data
     df = CSV.read(datadir("exp_pro","$(sample).csv"), DataFrame)
     doc_mean = mean(skipmissing(df[!, :DOC]))
     # n2o_mean = mean(skipmissing(df[!, :N2O]))   
     # so4_mean = mean(skipmissing(df[!, "SO4-2"]))
+    weight = df_info[df_info[!, :Sample] .== sample, "dry weight (g)"][1]
 
     # Define the initial conditions
-    u0 = [df[1, "NO3-"].*1e-3, doc_mean.*1e-3, Kh*df[1, "N2O"], df[1, "N2O"], 0.08, 0.02]
-    p = [6e-6, 5e-5, 1e-4]
+    u0 = [df[1, "NO3-"].*1e-3, doc_mean.*1e-3, 0., 0., 0.08, 0.02]
+    p = [6e-6, 1e-4, 1e-4]
+    if k == 1
+        p = [6e-6, 5e-4, 1e-4]
+    elseif k == 2
+        p = [6e-6, 1e-4, 1e-4]
+    elseif k == 3
+        p = [6e-6, 2.5e-5, 1e-4]
+    elseif k == 4
+        p = [6e-6, 1.e-5, 1e-4]
+    elseif k == 5
+        p = [6e-6, 2e-5, 1e-5]
+    end
     tspan = (0, maximum(df[!, :t]))
     # define the cost function
     obs = convert.(Float64,skipmissing(df[!, "NO3-"])).*1e-3
@@ -74,22 +90,27 @@ for sample in samples
         solv = vcat(sol.u'...)
         idx_no3 = find_first_indices(sol.t, df[idxs, :t])
         residuals = obs .- solv[idx_no3, 1]
-        idx_n20 = find_first_indices(sol.t, df[idxs_n2o, :t])
-        residuals_n2o = obs_n2o .- solv[idxs_n2o, 4]
-        return sum(abs2, residuals) + sum(abs2, residuals_n2o)*1e1
+        idx_n2o = find_first_indices(sol.t, df[idxs_n2o, :t])
+        residuals_n2o = obs_n2o .- solv[idx_n2o, 4]
+        return sum(abs2, residuals)*10 + sum(abs2, residuals_n2o)
     end
+
+    grad(p) = ForwardDiff.gradient(cost, p)
+    hess(p) = ForwardDiff.hessian(cost, p)
+
     # optimize the parameters
     lb = ones(length(p)).*1e-10
-    ub = [1e-4, 1e-1, 1e-3]
-    scale = 1 ./p
-    res = PRIMA.bobyqa(cost, p,
-        scale = scale,
-        xl = lb, xu = ub, rhobeg = 1e-0)
+    ub = [1e-4, 1e-3, 1e-3]
+    res = nonlinearlstr.bounded_trust_region(cost, grad, hess, p, lb, ub, initial_radius = 1e-5)
+    # scale = 1 ./p
+    # res = PRIMA.bobyqa(cost, p,
+    #     scale = scale,
+    #     xl = lb, xu = ub, rhobeg = 1e-8)
     p = res[1]
     # solve the ODE
     prob = ODEProblem(rhs!, u0, tspan, p)
     sol = solve(prob, Tsit5(), saveat=df[:, :t], callback = cb,
-         tstops = tstops, abstol = 1e-8, reltol = 1e-9, maxiters = 10000)
+         tstops = tstops, abstol = 1e-9, reltol = 1e-9, maxiters = 10000)
     solv = vcat(sol.u'...)
     # Plot the data for each sample
     fig = Figure()
@@ -99,8 +120,10 @@ for sample in samples
     xgridstyle = :dash, ygridstyle = :dash,
     #xgridwidth = 0.4, ygridwidth = 0.4,
     )
+    ylims!(ax, (0, 3.5e-3))
     ax2 = Axis(fig[1, 1], yaxisposition = :right, ygridvisible = false,
      xgridvisible = false, ylabelcolor = :orange, ylabel = "N2O [atm]")
+    ylims!(ax2, (0, 5.1e-4))
     #xlims!(ax,(-2, 180))
     #ylims!(ax,(-0.1, u0[1]+0.4))
     for (i, meas_name) in enumerate(meas_names)

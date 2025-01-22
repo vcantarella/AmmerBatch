@@ -8,71 +8,131 @@ using PRIMA
 using Statistics
 using OrdinaryDiffEq
 using CairoMakie
-colors = [:blue, :green, :red]
-meas_names = ["NO3-", "DOC", "SO4-2"]
+using nonlinearlstr
+using ForwardDiff
+colors = [:blue, :green, :orange]
+meas_names = ["NO3-", "DOC", "N2O"]
 samples = ["A308", "A310", "A402","A403", "A405", "A406", "A502", "A503",
            "A504", "A507", "A508", "A509", "A510","A603", "A604",
            "A904", "A905", "A906", "A908"]
-
-params = DataFrame(sample = String[], r_no3 = Float64[], r_doc = Float64[], αˡ = Float64[],
-                   c_eq = Float64[], K_doc = Float64[], K_no3 = Float64[], doc_f = Float64[],
+R = 0.0821 # atm L / mol K
+T = 298.15 # K
+Kh = 0.025 # mol L⁻¹ atm⁻¹ henry's law constant
+df_info = CSV.read(datadir("exp_pro","sample_info.csv"), DataFrame)
+rhs!(du, u, p, t) = doc_model!(du, u, p, t, Kh)
+params = DataFrame(sample = String[], r_no3 = Float64[],
+                   r_doc = Float64[], r_n2o = Float64[], αˡ = Float64[],
+                   c_eq = Float64[], K_doc = Float64[], K_no3 = Float64[],
+                   K_n2o = Float64[], doc_f = Float64[],
                    doc_0 = Float64[])
+
+function find_first_indices(times, target_times)
+    indices = []
+    for target_time in target_times
+        push!(indices, findfirst(t -> t == target_time, times))
+    end
+    return indices
+end
+
 for sample in samples
     # Load the data
     df = CSV.read(datadir("exp_pro","$(sample).csv"), DataFrame)
+    weight = df_info[df_info[!, :Sample] .== sample, "dry weight (g)"][1]
     doc_min = minimum(skipmissing(df[!, :DOC]))
     doc_max = maximum(skipmissing(df[!, :DOC]))
-    # n2o_mean = mean(skipmissing(df[!, :N2O]))   
-    so4_mean = mean(skipmissing(df[!, "SO4-2"]))
+    #so4_mean = mean(skipmissing(df[!, "SO4-2"]))
     doc_0 = 2
     Kd = doc_0/(doc_max-doc_min)
     # Define the initial conditions
-    u0 = [df[1, "NO3-"], df[1, :DOC], so4_mean, doc_0]
-    model_p = [0.01, 1, 0.1, Kd, 1e-4, 1e-5]
+    u0 = [df[1, "NO3-"].*1e-3, df[1, :DOC].*1e-3, 0.,0., 0.08, 0.02, doc_0, weight]
+    model_p = [6e-6, 1e-6, 1e-3, 1e-3, 1e-5, 1e-5, 5e-6, 1e-4]
+    model_p_min = ones(length(model_p)).*1e-10
+    model_p_max = ones(length(model_p)).*1e-3
     tspan = (0, maximum(df[!, :t]))
     # define the cost function
-    obs_n = convert.(Float64,skipmissing(df[!, "NO3-"]))
-    obs_c = convert.(Float64,skipmissing(df[!, "DOC"]))
+    obs_n = convert.(Float64,skipmissing(df[!, "NO3-"])).*1e-3
+    obs_c = convert.(Float64,skipmissing(df[!, "DOC"])).*1e-3
+    obs_n2o = convert.(Float64,skipmissing(df[!, "N2O"]))
     idxs_n = findall(!ismissing, df[!, "NO3-"])
     idxs_c = findall(!ismissing, df[!, "DOC"])
-    problem = ODEProblem(doc_model, u0, tspan, model_p)
-    sol = solve(problem, Tsit5(), saveat=df[!, :t])
-    p = [doc_0, doc_min, model_p...]
-    xl = [0, doc_min-0.2, 1e-8, 1e-8, 1e-8, 1e-5, 1e-7, 1e-7]
-    xu = [4, df[1, :DOC]-0.1, 8, 8, 8, 1e3, 1e-3, 1e-3]
+    idxs_n2o = findall(!ismissing, df[!, "N2O"])
+    t_liquid = df[idxs_n, :t]
+    t_g = df[idxs_n2o, :t]
+    tstops = union(t_liquid, t_g)
+    # sort tstops
+    sort!(tstops)
+    sampling_callback_condition(u, t, integrator) = t ∈ t_liquid
+    dilution_callback_condition(u, t, integrator) = t ∈ t_g
+    function sampling_affect!(integrator)
+        Vg_old = integrator.u[6]
+        Vw_old = integrator.u[5]
+        Vg_new = Vg_old + 0.004
+        integrator.u[4] = integrator.u[4] * (Vg_old / Vg_new)
+        integrator.u[6] = Vg_new
+        integrator.u[5] = Vw_old - 0.004
+    end
+    function dilution_affect!(integrator)
+        Vg_old = integrator.u[6]
+        integrator.u[4] = integrator.u[4] * (1-0.004/Vg_old)
+    end
+    cb_sampling = DiscreteCallback(sampling_callback_condition, sampling_affect!)
+    cb_dilution = DiscreteCallback(dilution_callback_condition, dilution_affect!)
+    cb = CallbackSet(cb_sampling, cb_dilution)
+    problem = ODEProblem(rhs!, u0, tspan, model_p)
+    sol = solve(problem, Tsit5(), saveat=df[!, :t],
+     callback = cb, tstops = tstops,
+     abstol = 1e-9, reltol = 1e-9, maxiters = 10000)
+    p = [doc_0*1e-3, doc_min*1e-3, model_p...]
+    xl = [0, (doc_min-0.2)*1e-3, model_p_min...]
+    xu = [4*1e-3, (df[1, :DOC]-0.1)*1e-3, model_p_max...]
     function cost(p)
         doc_0 = p[1]
         doc_f = p[2]
         model_p = p[3:end]
-        u0 = [df[1, "NO3-"], df[1, :DOC]- doc_f, so4_mean, doc_0]
+        u0 = [df[1, "NO3-"].*1e-3, df[1, :DOC].*1e-3, 0.,0., 0.08, 0.02, doc_0, weight]
         prob = remake(problem; u0 = u0, p = model_p)
-        sol = solve(prob, Rosenbrock23(), saveat=df[!, :t], abstol=1e-7, reltol=1e-7, maxiters=1e5)
+        sol = solve(prob, Tsit5(), saveat=df[!, :t],
+            callback = cb, tstops = tstops,
+            abstol = 1e-9, reltol = 1e-9, maxiters = 10000)
         solv = vcat(sol.u'...)
-        residuals_n = obs_n .- solv[idxs_n, 1]
-        residuals_c = obs_c .-  doc_f .- solv[idxs_c, 2]
-        return sum(abs2, residuals_n) + sum(abs2, residuals_c)
+        idx_no3 = find_first_indices(sol.t, df[idxs_n, :t])
+        residuals_n = obs_n .- solv[idx_no3, 1]
+        idx_doc = find_first_indices(sol.t, df[idxs_c, :t])
+        residuals_c = obs_c .-  doc_f .- solv[idx_doc, 2]
+        idx_n2o = find_first_indices(sol.t, df[idxs_n2o, :t])
+        residuals_n2o = obs_n2o .- solv[idx_n2o, 4]
+        return sum(abs2, residuals_n) + sum(abs2, residuals_c) + sum(abs2, residuals_n2o)
     end
+    grad(p) = ForwardDiff.gradient(cost, p)
+    hess(p) = ForwardDiff.hessian(cost, p)
+    res = nonlinearlstr.bounded_trust_region(cost, grad, hess, p, xl, xu, initial_radius = 1e-6, gtol = 1e-12, min_trust_radius = 1e-12)
     # optimize the parameters
-    res = PRIMA.bobyqa(cost, p, xl = repeat([1e-8], length(p)), xu = repeat([10], length(p)))
+    # res = PRIMA.bobyqa(cost, p, xl = xl, xu = xu)
     p = res[1]
     # solve the ODE
     doc_0 = p[1]
     doc_f = p[2]
-    u0 = [df[1, "NO3-"], df[1, :DOC]- doc_f, so4_mean, doc_0]
+    u0 = [df[1, "NO3-"].*1e-3, df[1, :DOC].*1e-3, 0.,0., 0.08, 0.02, doc_0, weight]
     model_p = p[3:end]
-    prob = ODEProblem(doc_model, u0, tspan, model_p)
-    sol = solve(prob, Tsit5(), saveat=df[!, :t])
+    prob = ODEProblem(rhs!, u0, tspan, model_p)
+    sol = solve(prob, Tsit5(), saveat=df[!, :t],
+        callback = cb, tstops = tstops,
+        abstol = 1e-9, reltol = 1e-9, maxiters = 10000)
     solv = vcat(sol.u'...)
     solv[:, 2] .+= doc_f
     # Plot the data for each sample
     fig = Figure()
     ax = Axis(fig[1, 1], xlabel = "Time (days)", ylabel = "Concentration (mmol L⁻¹)",
     title = "$(sample) Model Results",
-    xticks = 0:10:170, yticks = 0:0.5:4,
+    #xticks = 0:10:170, yticks = 0:0.5:4,
     xgridstyle = :dash, ygridstyle = :dash,
-    xgridwidth = 0.4, ygridwidth = 0.4,)
+    #xgridwidth = 0.4, ygridwidth = 0.4,
+    )
+    ylims!(ax, (0, 3.5e-3))
     xlims!(ax,(-2, 180))
-    ylims!(ax,(-0.1, u0[1]+0.4))
+    ax2 = Axis(fig[1, 1], yaxisposition = :right, ygridvisible = false,
+     xgridvisible = false, ylabelcolor = :orange, ylabel = "N2O [atm]")
+    ylims!(ax2, (0, 5.1e-4))
     for (i, meas_name) in enumerate(meas_names)
         missing_idx = findall(ismissing, df[!,Symbol(meas_name)])
         ts = df[!,:t][setdiff(1:end, missing_idx)]
@@ -81,10 +141,17 @@ for sample in samples
         if size(values, 1) == 0
             continue
         end
-        lines!(ax, sol.t, solv[:,i], label = meas_name, color = colors[i], linestyle = :dash,
-        linewidth = 2)
-        scatter!(ax, ts, values, label = meas_name, color = colors[i], markersize = 10,
-        marker = :diamond)
+        if meas_name == "N2O"
+            lines!(ax2, sol.t, solv[:,4], label = meas_name, color = colors[i], linestyle = :dash,)
+            scatter!(ax2, ts, values, label = meas_name, color = colors[i], markersize = 10,
+            marker = :diamond)
+        else
+            values = values.*1e-3
+            lines!(ax, sol.t, solv[:,i], label = meas_name, color = colors[i], linestyle = :dash,
+                linewidth = 2)
+            scatter!(ax, ts, values, label = meas_name, color = colors[i], markersize = 10,
+                marker = :diamond)
+        end
     end
     axislegend(ax, position = :rt, merge = true)
     fig

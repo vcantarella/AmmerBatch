@@ -26,11 +26,11 @@ format:
 
 There were two alternative formulations envisaged for the observed behaviour of the experiments' concentrations.
 
-1. A simple 0th order model, where denitrification occurs independently of the other variables, and thus was a function of matrix borne solid-phase electron donors.
+1. A simple 0th order model (constant denitrification rate model), where denitrification occurs independently of the other variables, and thus is a function of matrix solid-phase electron donors.
 
 2. A more complex model, that includes the previous model, but assumes that part of the DOC is bioavailable and reacts with nitrate via Michaelis-Mentem kinetics. This DOC, is also sorbed in the matrix, thus sorbing reactions occur.
 
-### Constant Denitrification Model
+### 1. Constant Denitrification Model
 
 The constant denitrification model describes the rate of change of nitrate concentration ($NO_3^-$) over time.
 
@@ -59,13 +59,10 @@ where:
 - $c_{w}$ is the concentration of N2O in water (mol/L).  
 - $H$ is Henry's law constant for N2O (mol /(L atm)).  
 
-#### Examples
 
+### 2. More complex model: DOC and NO3- Dynamics Model
 
-
-### DOC and NO3- Dynamics Model
-
-The $DOC$ and $NO3^-$ dynamics model describes the rates of change of nitrate ($NO_3^-$), labile dissolved organic carbon ($DOC^l$), and sorbed $DOC$ concentrations over time.
+The $DOC$ and $NO3^-$ dynamics model describes the rates of change of nitrate ($NO_3^-$), bioavailable dissolved organic carbon ($DOC^l$), and sorbed $DOC$ concentrations over time.
 
 #### Model Rates
 
