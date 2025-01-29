@@ -21,11 +21,11 @@ Kh = 0.025 # mol L⁻¹ atm⁻¹ henry's law constant
 df_info = CSV.read(datadir("exp_pro","sample_info.csv"), DataFrame)
 rhs!(du, u, p, t) = doc_model!(du, u, p, t, Kh) # importing the model!!
 
-params = DataFrame(sample = String[], r_no3 = Float64[],
-                   r_doc = Float64[], r_n2o = Float64[], αˡ = Float64[],
-                   c_eq = Float64[], K_doc = Float64[], K_no3 = Float64[],
-                   K_n2o = Float64[], doc_f = Float64[],
-                   doc_0 = Float64[])
+params = DataFrame(sample = String[], doc_f = Float64[], k_no3 = Float64[],
+                   k_doc = Float64[], αˡ = Float64[], Kd = Float64[],
+                   K_doc = Float64[], K_no3 = Float64[],
+                   k_n2o = Float64[],k_n2o_doc = Float64[], 
+                   K_n2o = Float64[],cost_f = Float64[])
 
 # I need this function to find the indices of the time points where the samples were taken.
 # then I can compare the model results with the data in the cost function.
@@ -42,7 +42,7 @@ end
 
 # For the fit to work, we need good initial conditions for each sample.
 
-for sample in samples
+for (i, sample) in enumerate(samples)
     # Load the data
     df = CSV.read(datadir("exp_pro","$(sample).csv"), DataFrame)
     weight = df_info[df_info[!, :Sample] .== sample, "dry weight (g)"][1]*1e-3
@@ -55,9 +55,9 @@ for sample in samples
     # Define the initial conditions
     u0 = [df[1, "NO3-"].*1e-3, df[1, :DOC].*1e-3-doc_f, 0.,0., 0.08, 0.02, doc_0, weight]
     # Define the model parameters
-    model_p = [2e-6, 1e-5, 1e-2, Kd, 1e-6, 1e-6, 1e-5, 1e-5]
-    model_p_min = [1e-8, 1e-8, 1e-5, 1e-5, 1e-7, 1e-8, 1e-8, 1e-8]
-    model_p_max = [1e-2, 1e-2, 10, 8e-4, 1e-3, 1e-3, 1e-4, 1e-3]
+    model_p = [1e-6, 1e-6, 1e-2, Kd, 1e-5, 1e-5, 1e-6,1e-5, 1e-7]
+    model_p_min = [1e-8, 1e-8, 1e-5, 1e-5, 1e-7, 1e-8, 1e-8, 1e-8, 1e-8]
+    model_p_max = [1e-2, 1e-2, 10, 8e-4, 1e-3, 1e-3, 1e-4, 1e-4, 1e-3]
     tspan = (0, maximum(df[!, :t]))
     # define the cost function
     ## osberved values
@@ -123,16 +123,28 @@ for sample in samples
         residuals_c = obs_c .-  doc_f .- solv[idx_doc, 2]
         idx_n2o = find_first_indices(sol.t, df[idxs_n2o, :t])
         residuals_n2o = obs_n2o .- solv[idx_n2o, 4]
-        return sum(abs2, residuals_n) + sum(abs2, residuals_c) + sum(abs2, residuals_n2o)*0.1
+        return sum(abs2, residuals_n) + sum(abs2, residuals_c)*10 + sum(abs2, residuals_n2o)*10
     end
-    grad(p) = ForwardDiff.gradient(cost, p)
-    hess(p) = ForwardDiff.hessian(cost, p)
-    hesfake(p) = -1.
-    # res = nonlinearlstr.bounded_trust_region(cost, grad, hess,
-    #  p, xl, xu, initial_radius = 1e-5, gtol = 1e-7, min_trust_radius = 1e-7)
+
     # optimize the parameters
-    res = PRIMA.bobyqa(cost, p, xl = xl, xu = xu, rhobeg = 1e-9, iprint = PRIMA.MSG_RHO)
-    p = res[1]
+    println("Fitting $(sample)")
+    try
+        res = PRIMA.bobyqa(cost, p, xl = xl, xu = xu, rhobeg = 1e-8, iprint = PRIMA.MSG_RHO, ftarget = 0.05*cost(p))
+        p = res[1]
+    catch
+        try
+            grad(p) = ForwardDiff.gradient(cost, p)
+            hess(p) = ForwardDiff.hessian(cost, p)
+            res = nonlinearlstr.bounded_trust_region(cost, grad, hess,
+                p, xl, xu, initial_radius = 1, gtol = 1e-8, min_trust_radius = 1e-8)
+            p = res[1]
+        catch
+            res = PRIMA.bobyqa(cost, p, xl = xl, xu = xu, rhobeg = 1e-10, iprint = PRIMA.MSG_RHO, ftarget = 0.1*cost(p))
+            p = res[1]
+        end
+        
+        
+    end
     # solve the ODE
     doc_f = p[1]
     Kd = p[5]
@@ -143,7 +155,9 @@ for sample in samples
         callback = cb, tstops = tstops,
         abstol = 1e-9, reltol = 1e-9, maxiters = 10000)
     solv = vcat(sol.u'...)
-    solv[:, 2] .+= doc_f
+    solv[:, 2] .=  solv[:, 2] .+ doc_f
+
+    cost_f = cost(p)
 
 
     ### Plotting the results and the data fit.
@@ -184,7 +198,7 @@ for sample in samples
     #save the plots
     save(plotsdir("$(sample)_model.png"), fig)
     #save the parameters
-    push!(params, (sample, model_p..., doc_f, doc_0))
+    push!(params, (sample, doc_f, model_p..., cost_f))
 end
 
 CSV.write(datadir("exp_pro","params_doc_model.csv"), params)
