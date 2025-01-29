@@ -30,7 +30,9 @@ From observing the concentration evolution in each sample, we can generatize two
 
 ![Example of denitrification independent of DOC concentration](images/A301_initial.png){fig-align="center" width="500"}
 
-In Figure 1, we see how denitrification happens, more or less at a constant rate, while DOC remains static. Moreover, SO4-2 also remains at a steady concentration, indicating that relative to the denitrification, sulfide, either soluble or in solid-phase constituents, is not a relevant electron donor. The conclusion, is that these samples do not contain enough soluble electron donors
+In Figure 1, we see how denitrification happens, more or less at a constant rate, while DOC remains static. Moreover, SO4-2 also remains at a steady concentration, indicating that relative to the denitrification, sulfide, either soluble or in solid-phase constituents, is not a relevant electron donor. The conclusion, is that these samples do not contain enough soluble electron donors and the only denitrification comes from the matrix.
+
+The proposed reaction rate is the 0th order rate model, and we do not observe the electron donor reaction product.
 
 There were two alternative formulations envisaged for the observed behavior of the experiments' concentrations.
 

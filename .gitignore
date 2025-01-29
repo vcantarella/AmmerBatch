@@ -8,7 +8,7 @@
 # /plots
 /notebooks/model_formulation_files/
 /_research
-/.CondaPkg
+/.CondaPkg/
 Manifest.toml
 /.vscode
 ################################################################################

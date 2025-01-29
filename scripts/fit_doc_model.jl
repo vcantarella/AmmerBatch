@@ -104,12 +104,11 @@ for (i, sample) in enumerate(samples)
      callback = cb, tstops = tstops,
      abstol = 1e-9, reltol = 1e-9, maxiters = 10000)
     # the full parameter set is the model parameters + the refractory doc
-    p = [doc_min, model_p...]
-    xl = [0., model_p_min...]
-    xu = [(df[1, :DOC]-0.1)*1e-3, model_p_max...]
+    p = model_p
+    xl = model_p_min
+    xu = model_p_max
     function cost(p)
-        doc_f = p[1]
-        model_p = p[2:end]
+        model_p = p
         Kd = model_p[4]
         u0 = [df[1, "NO3-"].*1e-3, (df[1, :DOC]*1e-3-doc_f), 0.,0., 0.08, 0.02,Kd*(df[1, :DOC]*1e-3-doc_f), weight]
         prob = remake(problem; u0 = u0, p = model_p)
@@ -146,16 +145,15 @@ for (i, sample) in enumerate(samples)
         
     end
     # solve the ODE
-    doc_f = p[1]
-    Kd = p[5]
+    Kd = p[4]
     u0 = [df[1, "NO3-"].*1e-3, (df[1, :DOC]*1e-3-doc_f), 0.,0., 0.08, 0.02, (df[1, :DOC]*1e-3-doc_f)*Kd, weight]
-    model_p = p[2:end]
+    model_p = p
     prob = ODEProblem(rhs!, u0, tspan, model_p)
     sol = solve(prob, Tsit5(), saveat=df[!, :t],
         callback = cb, tstops = tstops,
         abstol = 1e-9, reltol = 1e-9, maxiters = 10000)
     solv = vcat(sol.u'...)
-    solv[:, 2] .=  solv[:, 2] .+ doc_f
+    solv[:, 2] .+= doc_f
 
     cost_f = cost(p)
 
@@ -173,6 +171,7 @@ for (i, sample) in enumerate(samples)
     ax2 = Axis(fig[1, 1], yaxisposition = :right, ygridvisible = false,
      xgridvisible = false, ylabelcolor = :orange, ylabel = "N2O [atm]")
     ylims!(ax2, (0, 5.1e-4))
+    xlims!(ax2,(-2, 180))
     for (i, meas_name) in enumerate(meas_names)
         missing_idx = findall(ismissing, df[!,Symbol(meas_name)])
         ts = df[!,:t][setdiff(1:end, missing_idx)]
