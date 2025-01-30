@@ -5,32 +5,25 @@ Right-hand side function for an ODE system representing DOC and NO3- dynamics.
 
 # Arguments
 - `du::Vector{Float64}`: Derivative of the state vector `u`.
-- `u::Vector{Float64}`: State vector containing concentrations of NO3- and DOC.
-  - `u[1]`: Concentration of NO3- (mmol L⁻¹).
-  - `u[2]`: Concentration of DOC (mmol L⁻¹).
-  - `u[4]`: Concentration of sorbed DOC (mmol L⁻¹).
+- `u::Vector{Float64}`: State vector containing concentrations and volumes.
+  - `u[1]`: Concentration of NO3- (mmol L⁻¹)
+  - `u[2]`: Concentration of DOC (mmol L⁻¹)
+  - `u[3]`: Concentration of N2O in water (mmol L⁻¹)
+  - `u[4]`: Concentration of N2O in gas phase (atm)
+  - `u[5]`: Volume of water phase (L)
+  - `u[6]`: Volume of gas phase (L)
+  - `u[7]`: Concentration of sorbed DOC (mmol L⁻¹)
+  - `u[8]`: Mass of soil/sediment (g)
 - `p::Vector{Float64}`: Parameter vector.
-  - `p[1]`: Zero-order rate of NO3- reduction (mmol L⁻¹ day⁻¹).
-  - `p[2]`: Maximum rate of DOC denitrification by Michaelis-Menten kinetics (mmol L⁻¹ day⁻¹).
-  - `p[3]`: First-order rate of DOC transfer to sorbed phase (day⁻¹).
-  - `p[4]`: Equilibrium concentration of labile DOC in water (mmol L⁻¹).
-  - `p[5]`: Half-saturation constant for DOC (mmol L⁻¹).
-  - `p[6]`: Half-saturation constant for NO3- (mmol L⁻¹).
-- `t::Float64`: Time (days).
-
-# Description
-This function calculates the time derivatives of the concentrations of NO3-, DOC, and sorbed DOC based on the provided rate equations. It is intended to be used with an ODE solver from the SciML ecosystem.
-
-# Equations
-- `r_no3`: Zero-order rate of NO3- reduction.
-- `r_doc`: Michaelis-Menten kinetics for DOC denitrification.
-- `r_transfer`: First-order rate of DOC transfer to sorbed phase.
-
-# Returns
-- Updates the `du` vector with the calculated derivatives:
-  - `du[1]`: Derivative of NO3- concentration.
-  - `du[2]`: Derivative of DOC concentration.
-  - `du[4]`: Derivative of sorbed DOC concentration.
+  - `p[1]`: Zero-order rate of NO3- reduction (mmol L⁻¹ day⁻¹)
+  - `p[2]`: Maximum rate of DOC denitrification (mmol L⁻¹ day⁻¹)
+  - `p[3]`: First-order rate of DOC transfer to sorbed phase (day⁻¹)
+  - `p[4]`: Equilibrium concentration of labile DOC in water (mmol L⁻¹)
+  - `p[5]`: Half-saturation constant for DOC (mmol L⁻¹)
+  - `p[6]`: Half-saturation constant for NO3- (mmol L⁻¹)
+  - `p[7]`: Rate of N2O reduction by matrix DOC (mmol L⁻¹ day⁻¹)
+  - `p[8]`: Rate of N2O reduction by soluble DOC (mmol L⁻¹ day⁻¹)
+  - `p[9]`: Half-saturation constant for N2O (mmol L⁻¹)
 """
 function doc_model!(du, u, p, t, H)
     no3_, doc = u[[1, 2]]

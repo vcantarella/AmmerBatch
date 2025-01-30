@@ -7,6 +7,7 @@
 /videos
 # /plots
 /notebooks/model_formulation_files/
+notebooks/images/
 /_research
 /.CondaPkg/
 Manifest.toml

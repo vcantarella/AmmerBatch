@@ -132,7 +132,15 @@ $$
 $$
 
 $$
-\frac{d[DOC^l]}{dt} = -\frac{5}{4} r_{DOC} + r_{transfer}
+\frac{d[DOC^l]}{dt} = -\frac{5}{4} r_{DOC} + r_{transfer}*\frac{m_g}{V_w} - \frac{1}{2} r_{N_2O}^{DOC}
+$$
+
+$$
+\frac{d[N2O_{water}]}{dt} = \frac{1}{2} \left(r_{NO3^-}+r_{DOC} \right) - k_{N2O} -r_{N_2O}^{DOC} + r_{g}(c_{g}H - c_{w})
+$$
+
+$$
+\frac{d[N2O_{gas}]}{dt} = -\frac{r_{g}(c_{g}H - c_{w})}{H}
 $$
 
 $$
