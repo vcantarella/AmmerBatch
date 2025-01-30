@@ -30,8 +30,15 @@ jobs:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
       - uses: julia-actions/cache@v1
+      
+      - name: Add dependencies
+        run: |
+          julia --project=. -e '
+            using Pkg
+            Pkg.add(url="https://github.com/vcantarella/nonlinearlstr.jl.git")'
+            
       - uses: julia-actions/julia-buildpkg@v1
-
+      
       - name: Run tests
         run: >
           julia --project=. --color=yes test/runtests.jl

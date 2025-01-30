@@ -22,127 +22,98 @@ format:
       - \hypersetup{colorlinks=true, linkcolor=blue, filecolor=magenta, urlcolor=cyan}
 ---
 
-## Analysing the experiments and deriving the ODE models
+## Experimental Observations
 
-From observing the concentration evolution in each sample, we can generatize two models of nitrate degradation.
+Our batch experiments revealed two distinct denitrification patterns:
 
-1.  DOC independent denitrification
+1. **Matrix-Driven Denitrification**: Constant nitrate reduction without DOC consumption
+2. **DOC-Coupled Denitrification**: Concurrent reduction of nitrate and DOC
 
-![Example of denitrification independent of DOC concentration](images/A301_initial.png){#fig_ex1 fig-align="center" width="500"}
+### Evidence for Matrix-Driven Denitrification
 
-In Figure 1, we see how denitrification happens, more or less at a constant rate, while DOC remains static. Moreover, SO4-2 also remains at a steady concentration, indicating that relative to the denitrification, sulfide, either soluble or in solid-phase constituents, is not a relevant electron donor. The conclusion, is that these samples do not contain enough soluble electron donors and the only denitrification comes from the matrix.
+Denitrification occurs at a seemly constant rate while DOC and sulfate concentration remains stable.
 
-The proposed reaction rate is the 0th order rate model, and we do not observe the electron donor reaction product.
+![Denitrification occurs at constant rate while DOC remains static, indicating matrix-driven reduction](images/A301_initial.png){#fig-matrix width="500"}
 
-![Example of data points where denitrification occurs alongside doc consumption, albeit not in the same stoichiometric ratios](images/A406_initial.png){#fig_ex2 .illustration fig-align="center" width="500"}
+### Evidence for DOC-Coupled Denitrification
 
-In other samples, it is visible the concurrent reduction between model nitrate and DOC (Figure 2). However this reduction appear not to occur at the same electron equivalent stoichiometric rate (more DOC should have been consumed) and often, there is a plateau of DOC, from which the concentration does not reduce further.
+Denitrification occurs with a nonlinear rate, analogous to the DOC compumption. The ratio between Nitrate consumption to DOC consumption is higher than 4/5 (the stoichiometric ratio). Our conclusion to this phenomena is that an extra pool of DOC is available, but sorbed to the solid-phase surface. At late times, one may note that denitrification continues, and DOC stabilizes, indicating that the matrix related denitrification is also involved. Moreover, the high stable DOC concentration signals that part of the initial DOC is not bioavailable, and thus remains in the system. The sulfate concentration seems to increase slighly, albeit at a much smaller magnitude than the nitrate reduction, indicating that sulfur related denitrification is likely a minor effect in the system.
 
-The conclusion reached is that this happens because part of the DOC is still refractory (not bioavailable) and moreover, part is sorbed at the surface of the solid-phase material. As nitrate consumes the soluble DOC, the sorbed DOC is released and contributes to the reaction.
+![Concurrent reduction of nitrate and DOC with apparent sorption effects](images/A406_initial.png){#fig-doc width="500"}
 
-Therefore there are two alternative formulations envisaged for the observed behavior of the experiments' concentrations.
+## Model Formulations
 
-1.  A simple 0th order model (constant denitrification rate model), where denitrification occurs independently of the other variables, and thus is a function of matrix solid-phase electron donors.
+We model the measured nitrogen and carbon species as they signal the relevant processes occurring in the system. For nitrogen these are nitrate and nitrous gas, while for carbon it is the bioavailable DOC.
 
-2.  A more complex model, that includes the previous model, but assumes that part of the DOC is bioavailable and reacts with nitrate via Michaelis-Mentem kinetics. This DOC, is also sorbed in the matrix, thus sorbing reactions occur.
+For the gas-phase measurements of nitrous gas ($N_2O$), we include a gas transfer rate to the model. The gas-phase concentrations is sensible to sample collections during the experiment, that either take a water sample or a gas sample. Both dilute the gas phase with the anoxic atmosphere of the experiment. The sampling dilution is handled with callbacks that modify the underlying ode model during the solution.
 
-### 1. Constant Denitrification Model
+### 1. Matrix Denitrification Model
 
-The constant denitrification model describes the rate of change of nitrate concentration ($NO_3^-$) over time.
+A zero-order kinetic model representing matrix-driven denitrification.
 
-#### Model Rates
+#### State Variables
+| Variable | Description | Units |
+|----------|-------------|--------|
+| $[NO_3^-]$ | Nitrate concentration | mmol L⁻¹ |
+| $[N_2O_{water}]$ | Dissolved N₂O | mmol L⁻¹ |
+| $[N_2O_{gas}]$ | Gaseous N₂O | atm |
 
--   $k_{NO3^-}$ is the zero-order rate of $NO_3^-$ reduction (mol L⁻¹ day⁻¹).\
--   $k_{N2O}$ is the rate of N2O consumption (mol L⁻¹ day⁻¹).\
--   $r_{g}$ is the gas exchange rate (mol L⁻¹ day⁻¹).
+#### Governing Equations
 
-#### Differential Equations
-
-$$
+\begin{equation}
 \frac{d[NO_3^-]}{dt} = -k_{NO3^-}
-$$
+\end{equation}
 
-$$
-\frac{d[N2O_{water}]}{dt} = \frac{1}{2}r_{NO3^-} - k_{N2O} + r_{g}(c_{g}H - c_{w})
-$$
+\begin{equation}
+\frac{d[N_2O_{water}]}{dt} = \frac{1}{2}k_{NO3^-} - k_{N2O} + r_{g}(c_{g}H - c_{w})
+\end{equation}
 
-$$
-\frac{d[N2O_{gas}]}{dt} = -\frac{r_{g}(c_{g}H - c_{w})}{H}
-$$
+\begin{equation}
+\frac{d[N_2O_{gas}]}{dt} = -\frac{r_{g}(c_{g}H - c_{w})}{H}
+\end{equation}
 
-where:\
-- $c_{g}$ is the gas concentration of N2O in ppmv.\
-- $c_{w}$ is the concentration of N2O in water (mol/L).\
-- $H$ is Henry's law constant for N2O (mol /(L atm)).
+### 2. DOC-Coupled Denitrification Model
 
-### 2. More complex model: DOC and NO3- Dynamics Model
+An extended model incorporating DOC dynamics and sorption processes.
 
-The $DOC$ and $NO3^-$ dynamics model describes the rates of change of nitrate ($NO_3^-$), bioavailable dissolved organic carbon ($DOC^l$), and sorbed $DOC$ concentrations over time.
+#### Additional State Variables
+| Variable | Description | Units |
+|----------|-------------|--------|
+| $[DOC]$ | Dissolved organic carbon | mmol L⁻¹ |
+| $[DOC_{sorbed}]$ | Sorbed organic carbon | mmol L⁻¹ |
 
-#### Model Rates
+#### Rate Equations
 
--   $r_{NO3^-}$ is the zero-order rate of $NO_3^-$ reduction (mmol L⁻¹ day⁻¹).
--   $r_{DOC}$ is the rate of DOC denitrification by Michaelis-Menten kinetics, given by:
+\begin{equation}
+r_{DOC} = k_{DOC}^{max} \frac{[DOC]}{K_{DOC} + [DOC]} \cdot \frac{[NO_3^-]}{K_{NO3^-} + [NO_3^-]}
+\end{equation}
 
-$$
-r_{DOC} = r_{DOC^l}^{max} \frac{[DOC^l]}{K_{DOC} + [DOC^l]} \cdot \frac{[NO_3^-]}{K_{NO3^-} + [NO_3^-]}
-$$
+\begin{equation}
+r_{transfer} = \alpha \cdot (K_d[DOC_{sorbed}] - [DOC]) \frac{m_s}{V_w}
+\end{equation}
 
--   $r_{transfer}$ is the first-order rate of DOC transfer to the sorbed phase, given by:
-
-$$
-r_{transfer} = \alpha \cdot (c_{eq} - [DOC^s]) \frac{m_s}{V_w}
-$$
-
--   $k_{DOC}^{max}$ is the maximum rate of DOC denitrification (mmol L⁻¹ day⁻¹).
--   $\alpha$ is the first-order rate constant for DOC transfer to the sorbed phase (day⁻¹).
--   $c_{eq}$ is the equilibrium concentration of labile DOC in water (mmol L⁻¹), given by $c_{eq} = K_d \cdot [\text{sorbed DOC}]$.
--   $K_{DOC}$ and $K_{NO3}$ are the half-saturation constants for DOC and $NO_3^-$ respectively (mmol L⁻¹).
--   $[DOC^l]$ and $[NO_3^-]$ are the concentrations of DOC and $NO_3^-$ respectively (mmol L⁻¹).
--   $[\text{sorbed DOC}]$ is the concentration of sorbed DOC (mmol L⁻¹).
-
-We also include N2O dynamics associated with solid-phase model and doc reduction as well
-
-
-$$
-\frac{d[N2O_{water}]}{dt} = \frac{1}{2} \left(r_{NO3^-}+r_{DOC} \right) - k_{N2O} -r_{N_2O}^{DOC} + r_{g}(c_{g}H - c_{w})
-$$
-
-Where $r_{N_2O}^{DOC}$ is defined by the Michaelis-Mentem rate:
-$$
+\begin{equation}
 r_{N_2O}^{DOC} = k_{n2o}^{doc} \frac{[DOC]}{K_{DOC}+[DOC]} \frac{[N_2O]}{K_{N_2O} + [N_2O]}
-$$
+\end{equation}
 
-with:
-- $k_{n2o}^{doc}$ being the max rate of n2o reduction by DOC.
-$$
+#### Governing Equations
+
+\begin{equation}
+\frac{d[NO_3^-]}{dt} = -k_{NO3^-} - r_{DOC}
+\end{equation}
+
+\begin{equation}
+\frac{d[DOC]}{dt} = -\frac{5}{4} r_{DOC} + r_{transfer}\frac{m_g}{V_w} - \frac{1}{2} r_{N_2O}^{DOC}
+\end{equation}
+
+\begin{equation}
+\frac{d[DOC_{sorbed}]}{dt} = -r_{transfer}
+\end{equation}
+
+\begin{equation}
+\frac{d[N2O_{water}]}{dt} = \frac{1}{2}(k_{NO3^-} + r_{DOC}) - k_{N2O} - r_{N_2O}^{DOC} + r_{g}(c_{g}H - c_{w})
+\end{equation}
+
+\begin{equation}
 \frac{d[N2O_{gas}]}{dt} = -\frac{r_{g}(c_{g}H - c_{w})}{H}
-$$
-
-where:\
-- $c_{g}$ is the gas concentration of N2O in ppmv.\
-- $c_{w}$ is the concentration of N2O in water (mol/L).\
-- $H$ is Henry's law constant for N2O (mol /(L atm)).
-
-
-#### Differential Equations
-
-$$
-\frac{d[NO_3^-]}{dt} = -r_{NO3} - r_{DOC}
-$$
-
-$$
-\frac{d[DOC^l]}{dt} = -\frac{5}{4} r_{DOC} + r_{transfer}*\frac{m_g}{V_w} - \frac{1}{2} r_{N_2O}^{DOC}
-$$
-
-$$
-\frac{d[N2O_{water}]}{dt} = \frac{1}{2} \left(r_{NO3^-}+r_{DOC} \right) - k_{N2O} -r_{N_2O}^{DOC} + r_{g}(c_{g}H - c_{w})
-$$
-
-$$
-\frac{d[N2O_{gas}]}{dt} = -\frac{r_{g}(c_{g}H - c_{w})}{H}
-$$
-
-$$
-\frac{d[\text{sorbed DOC}]}{dt} = -r_{transfer}
-$$
+\end{equation}
