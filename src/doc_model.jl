@@ -47,10 +47,10 @@ function doc_model!(du, u, p, t, H)
     # define the rate equations
     r_doc = k_doc * doc / (K_doc + doc) * no3_ / (K_no3 + no3_)
     r_transfer = αˡ * (c_eq - doc_s)
-    r_g = 1e-1
-    r_no3 = ifelse(no3_ > 0.0, k_no3, 0.0)
+    r_g = 1e-2
+    r_no3 = ifelse(no3_ > 0, k_no3, zero(eltype(k_no3)))
     gas_rate = r_g*(c_g*H - c_w)
-    rate_n2o = k_n2o*c_w/(K_n2o + c_w)
+    rate_n2o = ifelse(c_w > 1e-8, k_n2o, zero(eltype(k_n2o)))
     rate_n2o_doc = k_n2o_doc * doc/(K_doc + doc) *  c_w/(K_n2o + c_w)
     du[1] = -r_no3 - r_doc
     du[2] = -r_doc - r_transfer*mg/Vw - 1/2*rate_n2o_doc
