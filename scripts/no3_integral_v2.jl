@@ -1,4 +1,5 @@
 using DrWatson
+using Printf
 @quickactivate "AmmerBatch"
 using DataFrames, CSV
 using Statistics
@@ -20,6 +21,8 @@ int_df = linear_regression_params
 @. int_df[!, :integral_no3] = NaN
 @. int_df[!, :c_quick] = NaN
 @. int_df[!, :t_quick] = NaN
+int_df[!, :weight] = df_info[!, "dry weight (g)"]
+int_df[!, :facies] = df_info[!, :Facies]
 for (i, sample) in enumerate(samples)
     # Load the data
     df = CSV.read(datadir("exp_pro","$(sample).csv"), DataFrame)
@@ -64,7 +67,7 @@ for (i, sample) in enumerate(samples)
     xgridstyle = :dash, ygridstyle = :dash,
     #xgridwidth = 0.4, ygridwidth = 0.4,
     )
-    ylims!(ax, (0, 3.5e-3))
+    ylims!(ax, (0, 3.8e-3))
     xlims!(ax,(-2, 180))
     for (j, meas_name) in enumerate(meas_names)
         missing_idx = findall(ismissing, df[!,Symbol(meas_name)])
@@ -97,7 +100,7 @@ for (i, sample) in enumerate(samples)
         text="t_quick = $(round(t_quick,digits=2)) [days]",
         color = :black, space = :relative)
         text!(ax, 0.02, 0.85,
-        text="c_quick = $(round(c_quick, digits=2)) [mol/gsoil]",
+        text="c_quick =  "*@sprintf("%.2E", c_quick)*" [mol L⁻¹]",
         color = :black, space = :relative)
     end
     text!(ax, 0.5, 0.9,
