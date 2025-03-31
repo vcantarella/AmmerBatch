@@ -21,8 +21,10 @@ for sample in samples
     index = convert.(Bool, 1 .-(ismissing.(modelled_no3)))
     modelled_no3 = modelled_no3[index].*1e-3
     modelled_times = modelled_times[index]
+    # preparing linear regression
     X = [ones(size(modelled_times)) modelled_times]
     y = modelled_no3
+    # linear regression and model fit results:
     β = (X'X)\(X'y)
     ϵ = y - X*β
     s² = ϵ'ϵ/(length(y)-length(β))
