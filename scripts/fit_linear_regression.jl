@@ -12,12 +12,14 @@ R = 0.0821 # atm L / mol K
 T = 298.15 # K
 Kh = 0.025 # mol L⁻¹ atm⁻¹ henry's law constant
 df_info = CSV.read(datadir("exp_pro","sample_info.csv"), DataFrame)
-late_times_params = DataFrame(sample = String[], k_no3 = Float64[], c₀ = Float64[], R² = Float64[])
+t_change = [0, 0, 0, 0, 65, 65, 10, 20, 50, 30, 0, 0, 30, 65, 0, 50, 65, 20, 105, 10, 30, 80, 0, 100,]
+late_times_params = DataFrame(sample = String[], k_no3 = Float64[], c₀ = Float64[], R² = Float64[], t_zeroorder = Float64[])
 samples = df_info[!, :Sample]
-for sample in samples
+for (i,sample) in enumerate(samples)
     df = CSV.read(datadir("exp_pro","$sample.csv"), DataFrame)
-    modelled_times = df[df[!, :t].≥65, :t]
-    modelled_no3 = df[df[!, :t].≥65, "NO3-"]
+    t_change_i = t_change[i]
+    modelled_times = df[df[!, :t].≥t_change_i, :t]
+    modelled_no3 = df[df[!, :t].≥t_change_i, "NO3-"]
     index = convert.(Bool, 1 .-(ismissing.(modelled_no3)))
     modelled_no3 = modelled_no3[index].*1e-3
     modelled_times = modelled_times[index]
@@ -33,7 +35,7 @@ for sample in samples
     SST = sum((y .- ȳ).^2)
     SSR = sum(ϵ.^2)
     R² = 1 - SSR/SST
-    push!(late_times_params, [sample, -β[2], β[1], R²])
+    push!(late_times_params, [sample, -β[2], β[1], R², t_change_i])
 
 end
 late_times_params
