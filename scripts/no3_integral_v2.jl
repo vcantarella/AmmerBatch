@@ -8,6 +8,7 @@ using Trapz
 using DataInterpolations
 using QuadGK
 using Roots
+using XLSX
 colors = [:blue, :green]
 meas_names = ["NO3-", "DOC"]
 
@@ -23,6 +24,7 @@ int_df = linear_regression_params
 @. int_df[!, :t_quick] = NaN
 int_df[!, :weight] = df_info[!, "dry weight (g)"]
 int_df[!, :facies] = df_info[!, :Facies]
+int_df[!, :TOC] = df_info[!, "TOC %"]
 for (i, sample) in enumerate(samples)
     # Load the data
     df = CSV.read(datadir("exp_pro","$(sample).csv"), DataFrame)
@@ -113,4 +115,4 @@ for (i, sample) in enumerate(samples)
     
 end
 
-CSV.write(datadir("exp_pro","integration_results.csv"), int_df)
+XLSX.writetable(datadir("exp_pro","integration_results.xlsx"), int_df; overwrite = true)

@@ -2,7 +2,6 @@ using DrWatson
 @quickactivate "AmmerBatch"
 
 # Here you may include files from the source directory
-include(srcdir("ode_model.jl"))
 using DataFrames, XLSX, CairoMakie
 using CSV
 using Serialization
