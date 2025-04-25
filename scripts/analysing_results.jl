@@ -1,11 +1,12 @@
-using Tidier, DataFrames, CSV, Statistics
 using DrWatson
 @quickactivate "AmmerBatch"
+using Tidier, DataFrames, CSV, Statistics
 using CairoMakie
 using XLSX
 # using CairoMakie
 # load integration results
 int_df = DataFrame(XLSX.readtable(datadir("exp_pro","integration_results.xlsx"), "Sheet1"))
+int_df[(int_df[!, :facies].=="C1").||(int_df[!, :facies].=="C2"), :facies] .= "C1"
 
 int_df[!, :k_no3_weight] = int_df[!, :k_no3] ./ int_df[!, :weight]
 
@@ -25,7 +26,7 @@ facies_result = @chain(
 # ggplot(facies_result, @aes(x = facies, y=mean_k_no3, fill = facies)) + geom_col() +
 # theme_minimal() + 
 # geom_errorbar(@aes(ymin = min_k_no3, ymax = max_k_no3),
-# color = :black, linewidth = 0.6) +
+# color = fontcolor, linewidth = 0.6) +
 # labs(y = "late times NO3⁻ reduction rate (mol L⁻¹ g⁻¹)", x = "Facies")+
 # scale_y_continuous(labels = label_scientific.(0:2e-7:1e-6)) +
 # theme()
@@ -34,38 +35,82 @@ unique_facies = sort(unique(int_df.facies))
 facies_code = Dict(zip(unique_facies, 1:length(unique_facies)))
 facies_result.facies_code = map(facies->facies_code[facies],facies_result.facies)
 
+
+fontcolor = "#474747"
 # Labeler = label_scientific()
-f = Figure()
-Label(f[1, 1, Top()], halign = :left, L"\times 10^{-6}")
+f = Figure(backgroundcolor = :transparent)
+Label(f[1, 1, Top()], halign = :left, L"\times 10^{-6}", fontsize = 16)
 ax = Axis(f[1, 1],
     xlabel = "Facies",
-    ylabel = "late times NO3⁻ reduction rate (mol L⁻¹ g⁻¹)",
-    xticks = (1:9, unique_facies),
+    ylabel = "r₀ [mol L⁻¹ g⁻¹ d⁻¹]",
+    xticks = (1:8, unique_facies),
     yticks = 1e-1:2e-1:1.2,
     xgridvisible = false,
     ygridvisible = false,
+    title = "NO₃⁻ Reduction Rates Across Facies Types",
+    titlefont = "Avenir Book",
+    titlesize = 24,
+    xlabelsize = 18,
+    ylabelsize = 18,
+    xticklabelsize = 16,
+    yticklabelsize = 16,
+    xticklabelcolor = fontcolor,
+    yticklabelcolor = fontcolor,
+    xticklabelfont = "Avenir Book",
+    yticklabelfont = "Avenir Book",
+    backgroundcolor = :transparent,
     )
 hidespines!(ax, :t, :r)
 barplot!(ax, facies_result.facies_code, facies_result.mean_k_no3.*1e6, color = :steelblue)
 errorbars!(ax, facies_result.facies_code, facies_result.mean_k_no3.*1e6,
     facies_result.mean_k_no3.*1e6-facies_result.min_k_no3.*1e6,
     facies_result.max_k_no3.*1e6 - facies_result.mean_k_no3.*1e6;
-    color = :black, linewidth = 0.8, whiskerwidth = 12)
+    color = fontcolor, linewidth = 0.8, whiskerwidth = 12)
+resize_to_layout!(f)
 f
 save(plotsdir("facies_k_no3.png"), f)
+save(plotsdir("facies_k_no3.svg"), f)
 
-f = Figure()
-Label(f[1, 1, Top()], halign = :left, L"\times 10^{-6}")
+f = Figure(backgroundcolor = :transparent)
+Label(f[1, 1, Top()], halign = :left, L"\times 10^{-6}", fontsize = 16)
 ax = Axis(f[1, 1],
     xlabel = "TOC [%]",
-    ylabel = "late times NO3⁻ reduction rate (mol L⁻¹ g⁻¹)",
+    ylabel = "r₀ [mol L⁻¹ g⁻¹ d⁻¹]",
+    title = "NO₃⁻ Reduction Rates Correlate with TOC",
     # xticks = (1:9, unique_facies),
     yticks = 1e-1:2e-1:1.2,
     xgridvisible = false,
     ygridvisible = false,
+    titlesize = 22,
+    titlealign = :right,
+    xlabelsize = 18,
+    ylabelsize = 18,
+    xticklabelsize = 16,
+    yticklabelsize = 16,
+    xticklabelcolor = fontcolor,
+    yticklabelcolor = fontcolor,
+    xticklabelfont = "Avenir Book",
+    yticklabelfont = "Avenir Book",
+    backgroundcolor = :transparent,
     )
 hidespines!(ax, :t, :r)
-scatter!(ax, int_df[!, "TOC"], int_df[!, :k_no3_weight].*1e6, color = :steelblue)
+# Plot each facies with a different color
+label_values = ["Clay", "Tufa grains", "Calcareous silt", "Tufa & reed", "Silt & moss", "Silt & organic debris",
+    "Brown peat", "Black peat"]
+labels = Dict(zip(unique_facies, label_values))
+for facies in unique_facies
+    facies_mask = int_df.facies .== facies
+    scatter!(ax, 
+             int_df[facies_mask, "TOC"], 
+             int_df[facies_mask, :k_no3_weight] .* 1e6, 
+             label = labels[facies],
+             markersize = 18)
+end
+
+# Add a legend
+Legend(f[1,2], ax, "Facies", framevisible = false, position = :lt, orientation = :vertical,
+    titlefont = "Avenir Book", titlesize = 18, titlecolor = fontcolor,
+    labelsize = 16, labelcolor = fontcolor, backgroundcolor = :transparent)
 k_no3 = int_df[!, :k_no3_weight]
 TOC = int_df[!, "TOC"]
 TOC = convert.(Float64, TOC)
@@ -79,9 +124,11 @@ ȳ = mean(y)
 SST = sum((y .- ȳ).^2)
 SSR = sum(ϵ.^2)
 R² = 1 - SSR/SST
-lines!(ax, 0:0.1:maximum(TOC), (β[1] .+ β[2].*(0:0.1:maximum(TOC))).*1e6, color = :crimson, linewidth = 2)
+lines!(ax, 0:0.1:maximum(TOC), (β[1] .+ β[2].*(0:0.1:maximum(TOC))).*1e6, color = :crimson, linewidth = 2.8)
 text!(ax, 0.5, 0.9,
     text="R² = $(round(R², digits=2))",
-    color = :black, space = :relative)
+    color = fontcolor, space = :relative)
+resize_to_layout!(f)
 f
+save(plotsdir("kno3_toc.svg"), f)
 save(plotsdir("kno3_toc.png"), f)

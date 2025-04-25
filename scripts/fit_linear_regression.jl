@@ -21,7 +21,7 @@ for (i,sample) in enumerate(samples)
     modelled_times = df[df[!, :t].≥t_change_i, :t]
     modelled_no3 = df[df[!, :t].≥t_change_i, "NO3-"]
     index = convert.(Bool, 1 .-(ismissing.(modelled_no3)))
-    modelled_no3 = modelled_no3[index].*1e-3
+    modelled_no3 = modelled_no3[index].*1e-3 # convert to mol L⁻¹
     modelled_times = modelled_times[index]
     # preparing linear regression
     X = [ones(size(modelled_times)) modelled_times]
