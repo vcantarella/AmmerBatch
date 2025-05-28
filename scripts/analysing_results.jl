@@ -34,30 +34,41 @@ facies_result = @chain(
 unique_facies = sort(unique(int_df.facies))
 facies_code = Dict(zip(unique_facies, 1:length(unique_facies)))
 facies_result.facies_code = map(facies->facies_code[facies],facies_result.facies)
-
+label_values = ["Clay", "Tufa grains", "Calcareous silt", "Tufa & reed", "Silt & moss", "Silt & organic debris",
+    "Brown peat", "Black peat"]
+labels = Dict(zip(unique_facies, label_values))
 
 fontcolor = "#474747"
 # Labeler = label_scientific()
 f = Figure(backgroundcolor = :transparent)
-Label(f[1, 1, Top()], halign = :left, L"\times 10^{-6}", fontsize = 16)
+Label(f[1, 1, Top()], halign = :left, L"\times 10^{-6}", fontsize = 16,
+    color = fontcolor, font = "Avenir Book")
 ax = Axis(f[1, 1],
-    xlabel = "Facies",
+    #xlabel = "Facies",
     ylabel = "r₀ [mol L⁻¹ g⁻¹ d⁻¹]",
-    xticks = (1:8, unique_facies),
+    xticks = (1:8, label_values),
     yticks = 1e-1:2e-1:1.2,
     xgridvisible = false,
     ygridvisible = false,
     title = "NO₃⁻ Reduction Rates Across Facies Types",
     titlefont = "Avenir Book",
-    titlesize = 24,
-    xlabelsize = 18,
+    titlesize = 20,
+    titlealign = :center,
+    titlecolor = fontcolor,
+    #xlabelsize = 18,
     ylabelsize = 18,
-    xticklabelsize = 16,
+    xticklabelsize = 14,
+    xticklabelrotation = deg2rad(35),
+    #xlabelrotation = 45,
     yticklabelsize = 16,
     xticklabelcolor = fontcolor,
     yticklabelcolor = fontcolor,
+    #xlabelcolor = fontcolor,
+    ylabelcolor = fontcolor,
     xticklabelfont = "Avenir Book",
     yticklabelfont = "Avenir Book",
+    #xlabelfont = "Avenir Book",
+    ylabelfont = "Avenir Book",
     backgroundcolor = :transparent,
     )
 hidespines!(ax, :t, :r)
@@ -72,32 +83,36 @@ save(plotsdir("facies_k_no3.png"), f)
 save(plotsdir("facies_k_no3.svg"), f)
 
 f = Figure(backgroundcolor = :transparent)
-Label(f[1, 1, Top()], halign = :left, L"\times 10^{-6}", fontsize = 16)
+Label(f[1, 1, Top()], halign = :left, L"\times 10^{-6}", fontsize = 16, 
+    color = fontcolor, font = "Avenir Book")
 ax = Axis(f[1, 1],
     xlabel = "TOC [%]",
     ylabel = "r₀ [mol L⁻¹ g⁻¹ d⁻¹]",
-    title = "NO₃⁻ Reduction Rates Correlate with TOC",
+    # title = "NO₃⁻ Reduction Rates Correlate with TOC",
     # xticks = (1:9, unique_facies),
     yticks = 1e-1:2e-1:1.2,
     xgridvisible = false,
     ygridvisible = false,
-    titlesize = 22,
-    titlealign = :right,
+    # titlesize = 20,
+    # titlealign = :right,
+    # titlecolor = fontcolor,
     xlabelsize = 18,
     ylabelsize = 18,
     xticklabelsize = 16,
     yticklabelsize = 16,
+    xlabelcolor = fontcolor,
+    ylabelcolor = fontcolor,
     xticklabelcolor = fontcolor,
     yticklabelcolor = fontcolor,
     xticklabelfont = "Avenir Book",
     yticklabelfont = "Avenir Book",
+    xlabelfont = "Avenir Book",
+    ylabelfont = "Avenir Book",
     backgroundcolor = :transparent,
     )
 hidespines!(ax, :t, :r)
 # Plot each facies with a different color
-label_values = ["Clay", "Tufa grains", "Calcareous silt", "Tufa & reed", "Silt & moss", "Silt & organic debris",
-    "Brown peat", "Black peat"]
-labels = Dict(zip(unique_facies, label_values))
+
 for facies in unique_facies
     facies_mask = int_df.facies .== facies
     scatter!(ax, 
@@ -128,6 +143,9 @@ lines!(ax, 0:0.1:maximum(TOC), (β[1] .+ β[2].*(0:0.1:maximum(TOC))).*1e6, colo
 text!(ax, 0.5, 0.9,
     text="R² = $(round(R², digits=2))",
     color = fontcolor, space = :relative)
+Label(f[1, 1:2, Top()], halign = :center, "NO₃⁻ Reduction Rates Correlate with TOC",
+fontsize = 20,
+    color = fontcolor, font = "Avenir Book")
 resize_to_layout!(f)
 f
 save(plotsdir("kno3_toc.svg"), f)
