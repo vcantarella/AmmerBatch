@@ -178,7 +178,7 @@ for facies in unique_facies
              label = labels[facies],
              markersize = 18)
 end
-
+f
 # Add a legend
 # Legend(f[1,2], ax, "Facies", framevisible = false, position = :lt, orientation = :vertical,
 #     titlefont = "Avenir Book", titlesize = 18, titlecolor = fontcolor,
@@ -201,5 +201,65 @@ R² = 1 - SSR/SST
 # text!(ax, 0.5, 0.9,
 #     text="R² = $(round(R², digits=2))",
 #     color = fontcolor, space = :relative)
+resize_to_layout!(f)
+f
+
+using StatsBase, GLM
+int_df[!,:r_no3] = convert.(Float64, int_df[!,:r_no3])
+int_df[!,:r_so4] = convert.(Float64, int_df[!,:r_so4])
+
+lm1 = lm(@formula(r_no3 ~ r_so4), int_df)
+
+
+# stoichiometric ratio of the reaction:
+
+f = Figure()#backgroundcolor = :transparent)
+Label(f[1, 1, Top()], halign = :left, L"\times 10^{-6}", fontsize = 16)
+Label(f[1, 1, BottomRight()], halign = :left, L"\times 10^{-6}", fontsize = 16)
+ax = Axis(f[1, 1],
+    ylabel = "r_no3 [mol L⁻¹ d⁻¹]",
+    xlabel = "r_so4 [mol L⁻¹ d⁻¹]",
+    title = "Stoichiometric Ratio of the Reaction",
+    # xticks = (1:9, unique_facies),
+    #yticks = 1e-1:2e-1:1.2,
+    xgridvisible = false,
+    ygridvisible = false,
+    titlesize = 22,
+    titlealign = :right,
+    xlabelsize = 18,
+    ylabelsize = 18,
+    xticklabelsize = 16,
+    yticklabelsize = 16,
+    xticklabelcolor = fontcolor,
+    yticklabelcolor = fontcolor,
+    xticklabelfont = "Avenir Book",
+    yticklabelfont = "Avenir Book",
+    #backgroundcolor = :transparent,
+    )
+hidespines!(ax, :t, :r)
+# Plot each facies with a different color
+label_values = ["C1: Clay", "T1: Tufa grains", "T2: Calcareous silt", "T4: Tufa & reed", "T6: Silt & moss", "T7: Silt & organic debris",
+    "T8: Brown peat", "T9: Black peat"]
+labels = Dict(zip(unique_facies, label_values))
+for facies in unique_facies
+    facies_mask = int_df.facies .== facies
+    scatter!(ax, 
+             int_df[facies_mask, :r_so4] .* 1e6, 
+             int_df[facies_mask, :r_no3] .* 1e6, 
+             label = labels[facies],
+             markersize = 18)
+end
+# plot the theoretical lines for the stoichiometric ratio
+stoich_ratio = 1.6 # FeS
+lines!(ax, 0:0.1:maximum(int_df[!, :r_so4]) .* 1e6, stoich_ratio .* (0:0.1:maximum(int_df[!, :r_so4])* 1e6) , color = :crimson, linewidth = 2.8,
+    label = "Stoichiometric Ratio: 8/5")
+# label the line
+stoich_ratio = 1.4 # FeS2
+lines!(ax, 0:0.1:maximum(int_df[!, :r_so4]) .* 1e6, stoich_ratio .* (0:0.1:maximum(int_df[!, :r_so4])* 1e6) , color = :steelblue, linewidth = 2.8,
+    label = "Stoichiometric Ratio: 7/5")
+stoich_ratio = 1.2 # S0
+lines!(ax, 0:0.1:maximum(int_df[!, :r_so4]) .* 1e6, stoich_ratio .* (0:0.1:maximum(int_df[!, :r_so4])* 1e6) , color = :darkgreen, linewidth = 2.8,
+    label = "Stoichiometric Ratio: 6/5")
+axislegend(ax, position = :lt, merge = true)
 resize_to_layout!(f)
 f
