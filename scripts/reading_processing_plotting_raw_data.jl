@@ -94,6 +94,7 @@ end
 # load the dataframes
 
 info_p2 = DataFrame(XLSX.readtable(datadir("exp_raw","johann_batch_preprocessed_part2.xlsx"), "info"))
+
 samples = info_p2[!, 1]
 t = DataFrame(XLSX.readtable(datadir("exp_raw","johann_batch_preprocessed_part2.xlsx"), "t (days)"))
 t = t[!, 1]

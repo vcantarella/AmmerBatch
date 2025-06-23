@@ -6,8 +6,11 @@ using XLSX
 
 # I want to analyze the rates of nitrate reduction and sulfur oxidation and their correlation
 
+Vw = 80*1e-3 # ml -> L
 int_df = DataFrame(XLSX.readtable(datadir("exp_pro","integration_results_part2.xlsx"), "Sheet1"))
-
+int_df[!, :r_no3_weight] = int_df[!, :r_no3] ./ int_df[!, :weight]
+int_df[!, :r_so4_no3] = int_df[!, :r_so4] ./ int_df[!, :r_no3]
+int_df[!, :r_so4_weight] = int_df[!, :r_so4] ./ int_df[!, :weight]# mol L⁻¹ g⁻¹ d⁻¹
 unique_facies = sort(unique(int_df.facies))
 facies_code = Dict(zip(unique_facies, 1:length(unique_facies)))
 
@@ -20,13 +23,13 @@ f = Figure()#backgroundcolor = :transparent)
 Label(f[1, 1, Top()], halign = :left, L"\times 10^{-6}", fontsize = 16)
 ax = Axis(f[1, 1],
     xlabel = "TOC [%]",
-    ylabel = "r₀ [mol L⁻¹ g⁻¹ d⁻¹]",
+    ylabel = "r₀ [mol g⁻¹ d⁻¹]",
     title = "NO₃⁻ Reduction Rates Correlate with TOC",
     # xticks = (1:9, unique_facies),
     #yticks = 1e-1:2e-1:1.2,
     xgridvisible = false,
     ygridvisible = false,
-    titlesize = 22,
+    titlesize = 18,
     titlealign = :right,
     xlabelsize = 18,
     ylabelsize = 18,
@@ -47,16 +50,16 @@ for facies in unique_facies
     facies_mask = int_df.facies .== facies
     scatter!(ax, 
              int_df[facies_mask, "TOC"], 
-             int_df[facies_mask, :r_no3] .* 1e6, 
+             int_df[facies_mask, :r_no3_weight] .* 1e6, 
              label = labels[facies],
              markersize = 18)
 end
 
 # Add a legend
 Legend(f[1,2], ax, "Facies", framevisible = false, position = :lt, orientation = :vertical,
-    titlefont = "Avenir Book", titlesize = 18, titlecolor = fontcolor,
-    labelsize = 16, labelcolor = fontcolor, backgroundcolor = :transparent)
-r_no3 = int_df[!, :r_no3]
+    titlefont = "Avenir Book", titlesize = 14, titlecolor = fontcolor,
+    labelsize = 13, labelcolor = fontcolor, backgroundcolor = :transparent)
+r_no3 = int_df[!, :r_no3_weight]
 TOC = int_df[!, "TOC"]
 TOC = convert.(Float64, TOC)
 X = [ones(size(TOC)) TOC]
@@ -106,7 +109,7 @@ labels = Dict(zip(unique_facies, label_values))
 for facies in unique_facies
     facies_mask = int_df.facies .== facies
     scatter!(ax, 
-             int_df[facies_mask, :r_no3] .* 1e6, 
+             int_df[facies_mask, :r_no3_weight] .* 1e6, 
              int_df[facies_mask, :r_so4_no3] , 
              label = labels[facies],
              markersize = 18)
@@ -116,7 +119,7 @@ end
 # Legend(f[1,2], ax, "Facies", framevisible = false, position = :lt, orientation = :vertical,
 #     titlefont = "Avenir Book", titlesize = 18, titlecolor = fontcolor,
 #     labelsize = 16, labelcolor = fontcolor, backgroundcolor = :transparent)
-r_no3 = int_df[!, :r_no3].* 1e6
+r_no3 = int_df[!, :r_no3]
 r_no3 = convert.(Float64, r_no3)
 r_so4_no3 = int_df[!, :r_so4_no3]
 r_so4_no3 = convert.(Float64, r_so4_no3)
@@ -174,7 +177,7 @@ for facies in unique_facies
     facies_mask = int_df.facies .== facies
     scatter!(ax, 
              int_df[facies_mask, :max_s04_part], 
-             int_df[facies_mask, :r_no3] , 
+             int_df[facies_mask, :r_no3_weight], 
              label = labels[facies],
              markersize = 18)
 end
@@ -244,21 +247,21 @@ labels = Dict(zip(unique_facies, label_values))
 for facies in unique_facies
     facies_mask = int_df.facies .== facies
     scatter!(ax, 
-             int_df[facies_mask, :r_so4] .* 1e6, 
-             int_df[facies_mask, :r_no3] .* 1e6, 
+             int_df[facies_mask, :r_so4_weight] .* 1e6, 
+             int_df[facies_mask, :r_no3_weight] .* 1e6, 
              label = labels[facies],
              markersize = 18)
 end
 # plot the theoretical lines for the stoichiometric ratio
 stoich_ratio = 1.6 # FeS
-lines!(ax, 0:0.1:maximum(int_df[!, :r_so4]) .* 1e6, stoich_ratio .* (0:0.1:maximum(int_df[!, :r_so4])* 1e6) , color = :crimson, linewidth = 2.8,
+lines!(ax, 0:0.1:maximum(int_df[!, :r_so4_weight]) .* 1e6, stoich_ratio .* (0:0.1:maximum(int_df[!, :r_so4_weight])* 1e6) , color = :crimson, linewidth = 2.8,
     label = "Stoichiometric Ratio: 8/5")
 # label the line
 stoich_ratio = 1.4 # FeS2
-lines!(ax, 0:0.1:maximum(int_df[!, :r_so4]) .* 1e6, stoich_ratio .* (0:0.1:maximum(int_df[!, :r_so4])* 1e6) , color = :steelblue, linewidth = 2.8,
+lines!(ax, 0:0.1:maximum(int_df[!, :r_so4_weight]) .* 1e6, stoich_ratio .* (0:0.1:maximum(int_df[!, :r_so4_weight])* 1e6) , color = :steelblue, linewidth = 2.8,
     label = "Stoichiometric Ratio: 7/5")
 stoich_ratio = 1.2 # S0
-lines!(ax, 0:0.1:maximum(int_df[!, :r_so4]) .* 1e6, stoich_ratio .* (0:0.1:maximum(int_df[!, :r_so4])* 1e6) , color = :darkgreen, linewidth = 2.8,
+lines!(ax, 0:0.1:maximum(int_df[!, :r_so4_weight]) .* 1e6, stoich_ratio .* (0:0.1:maximum(int_df[!, :r_so4_weight])* 1e6) , color = :darkgreen, linewidth = 2.8,
     label = "Stoichiometric Ratio: 6/5")
 axislegend(ax, position = :lt, merge = true)
 resize_to_layout!(f)

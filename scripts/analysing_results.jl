@@ -7,19 +7,23 @@ using XLSX
 # load integration results
 int_df = DataFrame(XLSX.readtable(datadir("exp_pro","integration_results.xlsx"), "Sheet1"))
 int_df[(int_df[!, :facies].=="C1").||(int_df[!, :facies].=="C2"), :facies] .= "C1"
-
-int_df[!, :k_no3_weight] = int_df[!, :k_no3] ./ int_df[!, :weight]
-
+int_df2 = DataFrame(XLSX.readtable(datadir("exp_pro","integration_results_part2.xlsx"), "Sheet1"))
+Vw = 80*1e-3 # ml -> L
+int_df[!, :r_no3_weight] = int_df[!, :r_no3] ./ int_df[!, :weight] .* Vw # mol gs⁻¹ d⁻¹
+int_df2[!, :r_no3_weight] = int_df2[!, :r_no3] ./ int_df2[!, :weight] .* Vw # mol gs⁻¹ d⁻¹
+int_df2 = select(int_df2, Not([:s0, :r_so4, :R²_so4, :r_so4_no3]))
+# combine the two dataframes
+int_df = vcat(int_df, int_df2)
 # group by facies
 
 facies_result = @chain(
     int_df,
     @group_by(facies),
     @summarize(
-        mean_k_no3 = mean(k_no3_weight),
-        std_k_no3 = std(k_no3_weight),
-        min_k_no3 = minimum(k_no3_weight),
-        max_k_no3 = maximum(k_no3_weight),
+        mean_r_no3 = mean(r_no3_weight),
+        std_r_no3 = std(r_no3_weight),
+        min_r_no3 = minimum(r_no3_weight),
+        max_r_no3 = maximum(r_no3_weight),
     )
 )
 
@@ -30,6 +34,8 @@ facies_result = @chain(
 # labs(y = "late times NO3⁻ reduction rate (mol L⁻¹ g⁻¹)", x = "Facies")+
 # scale_y_continuous(labels = label_scientific.(0:2e-7:1e-6)) +
 # theme()
+
+colors_map = :Paired_8
 
 unique_facies = sort(unique(int_df.facies))
 facies_code = Dict(zip(unique_facies, 1:length(unique_facies)))
@@ -45,16 +51,16 @@ Label(f[1, 1, Top()], halign = :left, L"\times 10^{-6}", fontsize = 16,
     color = fontcolor, font = "Avenir Book")
 ax = Axis(f[1, 1],
     #xlabel = "Facies",
-    ylabel = "r₀ [mol L⁻¹ g⁻¹ d⁻¹]",
+    ylabel = "r₀ [mol g⁻¹ d⁻¹]",
     xticks = (1:8, label_values),
     yticks = 1e-1:2e-1:1.2,
     xgridvisible = false,
     ygridvisible = false,
-    title = "NO₃⁻ Reduction Rates Across Facies Types",
-    titlefont = "Avenir Book",
-    titlesize = 20,
-    titlealign = :center,
-    titlecolor = fontcolor,
+    # title = "NO₃⁻ Reduction Rates Across Facies Types",
+    # titlefont = "Avenir Book",
+    # titlesize = 20,
+    # titlealign = :center,
+    # titlecolor = fontcolor,
     #xlabelsize = 18,
     ylabelsize = 18,
     xticklabelsize = 14,
@@ -72,10 +78,10 @@ ax = Axis(f[1, 1],
     backgroundcolor = :transparent,
     )
 hidespines!(ax, :t, :r)
-barplot!(ax, facies_result.facies_code, facies_result.mean_k_no3.*1e6, color = :steelblue)
-errorbars!(ax, facies_result.facies_code, facies_result.mean_k_no3.*1e6,
-    facies_result.mean_k_no3.*1e6-facies_result.min_k_no3.*1e6,
-    facies_result.max_k_no3.*1e6 - facies_result.mean_k_no3.*1e6;
+barplot!(ax, facies_result.facies_code, facies_result.mean_r_no3.*1e6, color = :steelblue)
+errorbars!(ax, facies_result.facies_code, facies_result.mean_r_no3.*1e6,
+    facies_result.mean_r_no3.*1e6-facies_result.min_r_no3.*1e6,
+    facies_result.max_r_no3.*1e6 - facies_result.mean_r_no3.*1e6;
     color = fontcolor, linewidth = 0.8, whiskerwidth = 12)
 resize_to_layout!(f)
 f
@@ -112,25 +118,29 @@ ax = Axis(f[1, 1],
     )
 hidespines!(ax, :t, :r)
 # Plot each facies with a different color
-
+c = cgrad(colors_map, (1:length(unique_facies))./length(unique_facies), categorical=true)
+k = 1
 for facies in unique_facies
     facies_mask = int_df.facies .== facies
     scatter!(ax, 
              int_df[facies_mask, "TOC"], 
-             int_df[facies_mask, :k_no3_weight] .* 1e6, 
+             int_df[facies_mask, :r_no3_weight] .* 1e6, 
              label = labels[facies],
+             color = c[k],
              markersize = 18)
+    k += 1
 end
 
 # Add a legend
 Legend(f[1,2], ax, "Facies", framevisible = false, position = :lt, orientation = :vertical,
     titlefont = "Avenir Book", titlesize = 18, titlecolor = fontcolor,
     labelsize = 16, labelcolor = fontcolor, backgroundcolor = :transparent)
-k_no3 = int_df[!, :k_no3_weight]
+r_no3 = int_df[!, :r_no3_weight]
+
 TOC = int_df[!, "TOC"]
 TOC = convert.(Float64, TOC)
 X = [ones(size(TOC)) TOC]
-y = k_no3
+y = r_no3
 β = (X'X)\(X'y)
 ϵ = y - X*β
 s² = ϵ'ϵ/(length(y)-length(β))

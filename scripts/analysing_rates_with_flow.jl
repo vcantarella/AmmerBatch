@@ -43,20 +43,22 @@ c_no3 = 50e-3 / 62.0049 # mol L⁻¹
 unique_facies = sort(unique(int_df.facies))
 facies_code = Dict(zip(unique_facies, 1:length(unique_facies)))
 facies_result.facies_code = map(facies->facies_code[facies],facies_result.facies)
-
-
+label_values = ["Clay", "Tufa grains", "Calcareous silt", "Tufa & reed", "Silt & moss", "Silt & organic debris",
+    "Brown peat", "Black peat"]
+labels = Dict(zip(unique_facies, label_values))
 fontcolor = "#474747"
 # Labeler = label_scientific()
 f = Figure()
 ax = Axis(f[1, 1],
     xlabel = "Facies",
     ylabel = "length to reduce 50 mg L⁻¹ NO₃⁻ [m]",
-    xticks = (1:8, unique_facies),
+    xticks = (1:8, label_values),
     # yticks = 1e-1:2e-1:1.2,
+    xticklabelrotation = π/6,
     xgridvisible = false,
     ygridvisible = false,
-    title = "NO₃⁻ Reduction Lengths Across Facies Types",
-    titlefont = "Avenir Book",
+    # title = "NO₃⁻ Reduction Lengths Across Facies Types",
+    # titlefont = "Avenir Book",
     titlesize = 21,
     xlabelsize = 18,
     ylabelsize = 18,

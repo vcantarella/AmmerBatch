@@ -126,7 +126,7 @@ int_df = linear_regression_params
 @. int_df[!, :c_quick] = NaN
 @. int_df[!, :t_quick] = NaN
 @. int_df[!, :r_so4_no3] = NaN
-int_df[!, :weight] = df_info[!, "dry weight (g)"] # Still needs updates!!
+int_df[!, :weight] = df_info[!, "dry weight (g)"]
 int_df[!, :facies] = df_info[!, :Facies]
 int_df[!, :TOC] = df_info[!, "TOC %"]
 
