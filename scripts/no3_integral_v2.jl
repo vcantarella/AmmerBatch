@@ -135,12 +135,12 @@ for (i, sample) in enumerate(samples)
         text!(ax, 0.02, 0.85,
         text="c_quick =  "*@sprintf("%.2E", c_quick)*" [mol L⁻¹]",
         color = :black, space = :relative)
-        text!(axg, 0.5, 0.8,
-        text="t_quick = $(round(t_quick,digits=2)) [days]",
-        color = :black, space = :relative, fontsize = 9)
-        text!(axg, 0.5, 0.7,
-        text="c_quick =  "*@sprintf("%.2E", c_quick)*" [mol L⁻¹]",
-        color = :black, space = :relative, fontsize = 9)
+        # text!(axg, 0.5, 0.8,
+        # text="t_quick = $(round(t_quick,digits=2)) [days]",
+        # color = :black, space = :relative, fontsize = 9)
+        # text!(axg, 0.5, 0.7,
+        # text="c_quick =  "*@sprintf("%.2E", c_quick)*" [mol L⁻¹]",
+        # color = :black, space = :relative, fontsize = 9)
     end
     text!(ax, 0.5, 0.9,
         text="R² = $(round(linear_regression_params[linear_regression_params[!,:sample] .== sample, "R²"][1], digits=2))",
@@ -294,12 +294,12 @@ for (i, sample) in enumerate(samples)
         text!(ax, 0.02, 0.85,
         text="c_quick =  "*@sprintf("%.2E", c_quick)*" [mol L⁻¹]",
         color = :black, space = :relative)
-        text!(axg, 0.2, 0.8,
-        text="t_quick = $(round(t_quick,digits=2)) [days]",
-        color = :black, space = :relative, fontsize = 9)
-        text!(axg, 0.2, 0.7,
-        text="c_quick =  "*@sprintf("%.2E", c_quick)*" [mol L⁻¹]",
-        color = :black, space = :relative, fontsize = 9)
+        # text!(axg, 0.2, 0.8,
+        # text="t_quick = $(round(t_quick,digits=2)) [days]",
+        # color = :black, space = :relative, fontsize = 9)
+        # text!(axg, 0.2, 0.7,
+        # text="c_quick =  "*@sprintf("%.2E", c_quick)*" [mol L⁻¹]",
+        # color = :black, space = :relative, fontsize = 9)
     end
     text!(ax, 0.5, 0.9,
         text="R² = $(round(linear_regression_params[linear_regression_params[!,:sample] .== sample, "R²"][1], digits=2))",
@@ -313,12 +313,12 @@ for (i, sample) in enumerate(samples)
     text!(axg, 0.5, 0.9,
         text="R² = $(round(linear_regression_params[linear_regression_params[!,:sample] .== sample, "R²"][1], digits=2))",
         color = :black, space = :relative)
-    text!(axg, 0.8, 0.8,
-        text="R²ₛ = $(round(linear_regression_params[linear_regression_params[!,:sample] .== sample, "R²_so4"][1], digits=2))",
-        color = :black, space = :relative,  fontsize = 9)
-    text!(axg, 0.8, 0.70,
-        text=L"$\frac{r_{so4}}{r_{no3}}$ = %$(round(r_so4/r_no3, digits=2))",
-        color = :black, space = :relative, fontsize = 9)
+    # text!(axg, 0.8, 0.8,
+    #     text="R²ₛ = $(round(linear_regression_params[linear_regression_params[!,:sample] .== sample, "R²_so4"][1], digits=2))",
+    #     color = :black, space = :relative,  fontsize = 9)
+    # text!(axg, 0.8, 0.70,
+    #     text=L"$\frac{r_{so4}}{r_{no3}}$ = %$(round(r_so4/r_no3, digits=2))",
+    #     color = :black, space = :relative, fontsize = 9)
 
     axislegend(ax, position = :rt, merge = true)
     Legend(grid_plot_figs[grid_plot_num][5,1:2], axg, "Substance", merge = true, framevisible = false, orientation = :horizontal)

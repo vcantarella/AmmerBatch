@@ -5,24 +5,8 @@ using CairoMakie
 using XLSX
 # using CairoMakie
 # load integration results
-int_df = DataFrame(XLSX.readtable(datadir("exp_pro","integration_results.xlsx"), "Sheet1"))
-int_df[(int_df[!, :facies].=="C1").||(int_df[!, :facies].=="C2"), :facies] .= "C1"
-
-int_df[!, :r_no3_weight] = int_df[!, :r_no3] ./ int_df[!, :weight]
-
-# group by facies
-
-facies_result = @chain(
-    int_df,
-    @group_by(facies),
-    @summarize(
-        mean_r_no3 = mean(r_no3_weight),
-        median_r_no3 = median(r_no3_weight),
-        std_r_no3 = std(r_no3_weight),
-        min_r_no3 = minimum(r_no3_weight),
-        max_r_no3 = maximum(r_no3_weight),
-    )
-)
+int_df = DataFrame(CSV.File(datadir("exp_pro","integration_results_final.csv")))
+facies_result = DataFrame(CSV.File(datadir("exp_pro","facies_results.csv")))
 
 # Read the velocity data
 vel_df = CSV.read(datadir("external","velocity_facies.csv"), DataFrame)
