@@ -9,8 +9,8 @@ int_df = DataFrame(XLSX.readtable(datadir("exp_pro","integration_results.xlsx"),
 int_df[(int_df[!, :facies].=="C1").||(int_df[!, :facies].=="C2"), :facies] .= "C1"
 int_df2 = DataFrame(XLSX.readtable(datadir("exp_pro","integration_results_part2.xlsx"), "Sheet1"))
 Vw = 80*1e-3 # ml -> L
-int_df[!, :r_no3_weight] = int_df[!, :r_no3] ./ int_df[!, :weight] .* Vw # mol gs⁻¹ d⁻¹
-int_df2[!, :r_no3_weight] = int_df2[!, :r_no3] ./ int_df2[!, :weight] .* Vw # mol gs⁻¹ d⁻¹
+int_df[!, :r_no3_weight] = int_df[!, :r_no3] ./ (int_df[!, :weight]*1e-3) .* Vw # mol kgs⁻¹ d⁻¹
+int_df2[!, :r_no3_weight] = int_df2[!, :r_no3] ./ (int_df2[!, :weight]*1e-3) .* Vw # mol kgs⁻¹ d⁻¹
 int_df2 = select(int_df2, Not([:s0, :r_so4, :R²_so4, :r_so4_no3]))
 # combine the two dataframes
 int_df = vcat(int_df, int_df2)
@@ -47,13 +47,13 @@ labels = Dict(zip(unique_facies, label_values))
 fontcolor = "#474747"
 # Labeler = label_scientific()
 f = Figure(backgroundcolor = :transparent)
-Label(f[1, 1, Top()], halign = :left, L"\times 10^{-6}", fontsize = 16,
+Label(f[1, 1, Top()], halign = :left, L"\times 10^{-3}", fontsize = 16,
     color = fontcolor, font = "Avenir Book", padding = (-60, 0, 0, 0))
 ax = Axis(f[1, 1],
     #xlabel = "Facies",
     width = 400,
     height = 300,
-    ylabel = "r₀ [mol g⁻¹ d⁻¹]",
+    ylabel = "r₀ [mol kg⁻¹ d⁻¹]",
     xticks = (1:8, label_values),
     yticks = 1e-1:2e-1:1.2,
     xgridvisible = false,
@@ -80,10 +80,10 @@ ax = Axis(f[1, 1],
     backgroundcolor = :transparent,
     )
 hidespines!(ax, :t, :r)
-barplot!(ax, facies_result.facies_code, facies_result.mean_r_no3.*1e6, color = :steelblue)
-errorbars!(ax, facies_result.facies_code, facies_result.mean_r_no3.*1e6,
-    facies_result.mean_r_no3.*1e6-facies_result.min_r_no3.*1e6,
-    facies_result.max_r_no3.*1e6 - facies_result.mean_r_no3.*1e6;
+barplot!(ax, facies_result.facies_code, facies_result.mean_r_no3.*1e3, color = :steelblue)
+errorbars!(ax, facies_result.facies_code, facies_result.mean_r_no3.*1e3,
+    facies_result.mean_r_no3.*1e3-facies_result.min_r_no3.*1e3,
+    facies_result.max_r_no3.*1e3 - facies_result.mean_r_no3.*1e3;
     color = fontcolor, linewidth = 0.8, whiskerwidth = 12)
 # resize_to_layout!(f)
 # f
@@ -91,13 +91,13 @@ errorbars!(ax, facies_result.facies_code, facies_result.mean_r_no3.*1e6,
 # save(plotsdir("facies_k_no3.svg"), f)
 
 # f = Figure(backgroundcolor = :transparent)
-Label(f[1, 2, Top()], halign = :left, L"\times 10^{-6}", fontsize = 16, 
+Label(f[1, 2, Top()], halign = :left, L"\times 10^{-3}", fontsize = 16, 
     color = fontcolor, font = "Avenir Book", padding = (-70, 0, 0, 0))
 ax2 = Axis(f[1, 2],
     width = 400,
     height = 300,
     xlabel = "TOC [%]",
-    ylabel = "r₀ [mol L⁻¹ g⁻¹ d⁻¹]",
+    ylabel = "r₀ [mol kg⁻¹ d⁻¹]",
     title = "b.",
     # xticks = (1:9, unique_facies),
     yticks = 1e-1:2e-1:1.2,
@@ -133,7 +133,7 @@ for facies in unique_facies
     real_idx = findall(!ismissing, int_df[facies_mask, "TOC"])
     scatter!(ax2, 
              convert.(Float64, int_df[facies_mask, "TOC"][real_idx]), 
-             int_df[facies_mask, :r_no3_weight][real_idx] .* 1e6, 
+             int_df[facies_mask, :r_no3_weight][real_idx] .* 1e3, 
              label = labels[facies],
              color = c[k],
              markersize = 18)
@@ -160,7 +160,7 @@ ȳ = mean(y)
 SST = sum((y .- ȳ).^2)
 SSR = sum(ϵ.^2)
 R² = 1 - SSR/SST
-lines!(ax2, 0:0.1:maximum(TOC), (β[1] .+ β[2].*(0:0.1:maximum(TOC))).*1e6, color = :crimson, linewidth = 2.8)
+lines!(ax2, 0:0.1:maximum(TOC), (β[1] .+ β[2].*(0:0.1:maximum(TOC))).*1e3, color = :crimson, linewidth = 2.8)
 text!(ax2, 0.5, 0.9,
     text="R² = $(round(R², digits=2))",
     color = fontcolor, space = :relative)
