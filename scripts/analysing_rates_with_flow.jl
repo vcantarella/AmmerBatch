@@ -9,6 +9,7 @@ int_df = DataFrame(CSV.File(datadir("exp_pro","integration_results_final.csv")))
 
 # Read the velocity data
 vel_df = CSV.read(datadir("external","velocity_facies_v2.csv"), DataFrame)
+q_df = CSV.read(datadir("external","q_facies.csv"), DataFrame)
 
 
 TOC = int_df[!,:TOC].*1e-2 # %wt (proportion) total organic carbon
@@ -28,13 +29,15 @@ thick = 5 # thickness m
 i = 2 / 750 # hydraulic gradient
 q = T * i / thick # specific discharge m/s
 q = q * 86400 # m/d
-
+q_model = [q_df[q_df.facies .== facies, :mean][1] for facies in int_df.facies]
+q_model .= q_model .* 86400 # m/d
 # length for denitrifying a given concentration
 c_no3 = 50e-3 / 62.0049 # mol L⁻¹ - given concentration inflow of NO₃⁻
 c_no3 = c_no3 * 1e3 # mol m⁻³
 length_to_reduce = c_no3 * q ./ (ρᵦ .* int_df[!, :r_no3_weight]) # m
 int_df[!, :length] = length_to_reduce
-
+length_model = c_no3 * q_model ./ (ρᵦ .* int_df[!, :r_no3_weight]) # m
+int_df[!, :length_model] = length_model
 
 v = 1:nrow(int_df)
 ind = v[.!ismissing.(int_df[!, :TOC])]
@@ -50,15 +53,27 @@ facies_result_len = @chain(
     )
 )
 
+facies_result_model = @chain(
+    # filter missing TOC values
+    int_df[ind, :],
+    @group_by(facies),
+    @summarize(
+        mean_length = mean(length_model),
+        std_length = std(length_model),
+        min_length = minimum(length_model),
+        max_length = maximum(length_model),
+    )
+)
+
 
 unique_facies = sort(unique(int_df.facies))
 facies_code = Dict(zip(unique_facies, 1:length(unique_facies)))
 facies_result_len.facies_code = map(facies->facies_code[facies],facies_result_len.facies)
+facies_result_model.facies_code = map(facies->facies_code[facies],facies_result_model.facies)
 label_values = ["Clay", "Tufa grains", "Calcareous silt", "Tufa & reed", "Silt & moss", "Silt & organic debris",
     "Brown peat", "Black peat"]
 labels = Dict(zip(unique_facies, label_values))
 fontcolor = "#474747"
-# Labeler = label_scientific()
 f = Figure()
 ax = Axis(f[1, 1],
     xlabel = "Facies",
@@ -90,3 +105,37 @@ errorbars!(ax, facies_result_len.facies_code, facies_result_len.mean_length,
 resize_to_layout!(f)
 f
 save("plots/length_to_reduce.png", f)
+
+facies_result_model.facies_code = map(facies->facies_code[facies],facies_result_model.facies)
+
+f = Figure()
+ax = Axis(f[1, 1],
+    xlabel = "Facies",
+    ylabel = "length to reduce 50 mg L⁻¹ NO₃⁻ [m]",
+    xticks = (1:8, label_values),
+    # yticks = 1e-1:2e-1:1.2,
+    xticklabelrotation = π/6,
+    xgridvisible = false,
+    ygridvisible = false,
+    # title = "NO₃⁻ Reduction Lengths Across Facies Types",
+    # titlefont = "Avenir Book",
+    titlesize = 21,
+    xlabelsize = 18,
+    ylabelsize = 18,
+    xticklabelsize = 16,
+    yticklabelsize = 16,
+    xticklabelcolor = fontcolor,
+    yticklabelcolor = fontcolor,
+    xticklabelfont = "Avenir Book",
+    yticklabelfont = "Avenir Book",
+    backgroundcolor = :transparent,
+    )
+hidespines!(ax, :t, :r)
+barplot!(ax, facies_result_model.facies_code, facies_result_model.mean_length, color = :steelblue)
+errorbars!(ax, facies_result_model.facies_code, facies_result_model.mean_length,
+    facies_result_model.mean_length-facies_result_model.min_length,
+    facies_result_model.max_length - facies_result_model.mean_length;
+    color = fontcolor, linewidth = 0.8, whiskerwidth = 12)
+resize_to_layout!(f)
+f
+save("plots/length_to_reduce_model.png", f)
