@@ -71,8 +71,8 @@ unique_facies = sort(unique(int_df.facies))
 facies_code = Dict(zip(unique_facies, 1:length(unique_facies)))
 facies_result_len.facies_code = map(facies->facies_code[facies],facies_result_len.facies)
 facies_result_model.facies_code = map(facies->facies_code[facies],facies_result_model.facies)
-label_values = ["Clay", "Tufa grains", "Calcareous silt", "Tufa & reed", "Silt & moss", "Silt & organic debris",
-    "Brown peat", "Black peat"]
+label_values = ["Clay (FT-C1)", "Tufa grains (FT-01)", "Calcareous silt (FT-02)", "Tufa & reed (FT-04)", "Silt & moss (FT-06)", "Silt & organic debris (FT-07)",
+    "Brown peat (FT-08)", "Black peat (FT-09)"]
 labels = Dict(zip(unique_facies, label_values))
 fontcolor = "#474747"
 f = Figure()
@@ -94,6 +94,10 @@ ax = Axis(f[1, 1],
     xticklabelcolor = fontcolor,
     yticklabelcolor = fontcolor,
     xticklabelfont = "Avenir Book",
+    xlabelfont = "Avenir Book",
+    ylabelfont = "Avenir Book",
+    xlabelcolor = fontcolor,
+    ylabelcolor = fontcolor,
     yticklabelfont = "Avenir Book",
     backgroundcolor = :transparent,
     )
