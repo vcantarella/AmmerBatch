@@ -39,6 +39,7 @@ length_to_reduce = c_no3 * q ./ (ρᵦ .* int_df[!, :r_no3]) # m
 int_df[!, :length] = length_to_reduce
 length_model = c_no3 * q_model ./ (ρᵦ .* int_df[!, :r_no3]) # m
 int_df[!, :length_model] = length_model
+k_model = [q_df[q_df.facies .== facies, :k][1] for facies in int_df.facies]
 
 v = 1:nrow(int_df)
 ind = v[.!ismissing.(int_df[!, :TOC])]
@@ -71,13 +72,18 @@ unique_facies = sort(unique(int_df.facies))
 facies_code = Dict(zip(unique_facies, 1:length(unique_facies)))
 facies_result_len.facies_code = map(facies->facies_code[facies],facies_result_len.facies)
 facies_result_model.facies_code = map(facies->facies_code[facies],facies_result_model.facies)
+facies_result_len.k_result = [q_df[q_df.facies .== facies, :k][1] for facies in facies_result_len.facies]
+facies_result_model.k_result = [q_df[q_df.facies .== facies, :k][1] for facies in facies_result_model.facies]
+# sort dfs based on facies_code
+facies_result_len = sort(facies_result_len, :facies_code)
+facies_result_model = sort(facies_result_model, :facies_code)
 label_values = ["Clay (FT-C1)", "Tufa grains (FT-01)", "Calcareous silt (FT-02)", "Tufa & reed (FT-04)", "Silt & moss (FT-06)", "Silt & organic debris (FT-07)",
     "Brown peat (FT-08)", "Black peat (FT-09)"]
 labels = Dict(zip(unique_facies, label_values))
 fontcolor = "#474747"
 f = Figure()
 ax = Axis(f[1, 1],
-    xlabel = "Facies",
+    # xlabel = "Facies",
     ylabel = "length to reduce 50 mg L⁻¹ NO₃⁻ [m]",
     xticks = (1:8, label_values),
     # yticks = 1e-1:2e-1:1.2,
@@ -101,17 +107,34 @@ ax = Axis(f[1, 1],
     yticklabelfont = "Avenir Book",
     backgroundcolor = :transparent,
     )
+ax2 = Axis(f[1, 1],
+    ylabel = "k [m/s]",
+    yaxisposition = :right,
+    xgridvisible = false,
+    ygridvisible = false,
+    xlabelsize = 18,
+    ylabelsize = 18,
+    xticklabelsize = 16,
+    yticklabelsize = 16,
+    xticklabelcolor = fontcolor,
+    yticklabelcolor = fontcolor,
+    xticklabelfont = "Avenir Book",
+    yticklabelfont = "Avenir Book",
+    backgroundcolor = :transparent,
+)
+hidespines!(ax2)
+hidedecorations!(ax2)
 hidespines!(ax, :t, :r)
 barplot!(ax, facies_result_len.facies_code, facies_result_len.mean_length, color = :steelblue)
 errorbars!(ax, facies_result_len.facies_code, facies_result_len.mean_length,
     facies_result_len.mean_length-facies_result_len.min_length,
     facies_result_len.max_length - facies_result_len.mean_length;
     color = fontcolor, linewidth = 0.8, whiskerwidth = 12)
+scatter!(ax2, facies_result_len.facies_code, facies_result_len.k_result, color = :red, markersize = 8, label = "k")
+lines!(ax2, facies_result_len.facies_code, facies_result_len.k_result, color = :red, linewidth = 1.5)
 resize_to_layout!(f)
 f
 save("plots/length_to_reduce_v2.png", f)
-
-facies_result_model.facies_code = map(facies->facies_code[facies],facies_result_model.facies)
 
 f = Figure()
 ax = Axis(f[1, 1],
@@ -126,7 +149,7 @@ ax = Axis(f[1, 1],
     # titlefont = "Avenir Book",
     titlesize = 21,
     xlabelsize = 18,
-    ylabelsize = 18,
+    ylabelsize = 16,
     xticklabelsize = 16,
     yticklabelsize = 16,
     xticklabelcolor = fontcolor,
@@ -134,14 +157,107 @@ ax = Axis(f[1, 1],
     xticklabelfont = "Avenir Book",
     yticklabelfont = "Avenir Book",
     backgroundcolor = :transparent,
+    ylabelfont = "Avenir Book",
+    yscale = Makie.pseudolog10,
+    yminorticksvisible = true,
+    yminorticks = IntervalsBetween(5)
     )
+ax2 = Axis(f[1, 1],
+    ylabel = "k [m/s]",
+    yaxisposition = :right,
+    yticks = [1e-7,5.0e-6,1e-5,1.5e-5],
+    xgridvisible = false,
+    ygridvisible = false,
+    xticksvisible = false,
+    xlabelsize = 0,
+    ylabelsize = 18,
+    xticklabelsize = 0,
+    yticklabelsize = 16,
+    xticklabelcolor = fontcolor,
+    yticklabelcolor = fontcolor,
+    xticklabelfont = "Avenir Book",
+    yticklabelfont = "Avenir Book",
+    backgroundcolor = :transparent,
+)
+#ylims!(ax, -1e-9, maximum(facies_result_len.max_length) + 1e-9)
+ylims!(ax2, -1e-6, 1.6e-5)
+hidespines!(ax2, :t, :l, :b)
+linkxaxes!(ax, ax2)
+#ax2.yreversed = true
+#hidedecorations!(ax2)
 hidespines!(ax, :t, :r)
 barplot!(ax, facies_result_model.facies_code, facies_result_model.mean_length, color = :steelblue)
 errorbars!(ax, facies_result_model.facies_code, facies_result_model.mean_length,
     facies_result_model.mean_length-facies_result_model.min_length,
     facies_result_model.max_length - facies_result_model.mean_length;
     color = fontcolor, linewidth = 0.8, whiskerwidth = 12)
+scatter!(ax2, facies_result_model.facies_code, facies_result_model.k_result, color = :red, markersize = 8, label = "k")
+lines!(ax2, facies_result_model.facies_code, facies_result_model.k_result, color = :red, linewidth = 1.5)
 resize_to_layout!(f)
 f
 save("plots/length_to_reduce_model_v2.png", f)
 println("DONE!")
+
+
+
+
+f = Figure()
+ax = Axis(f[2, 1],
+    xlabel = "Facies",
+    ylabel = "length to reduce 50 mg L⁻¹ NO₃⁻ [m]",
+    xticks = (1:8, label_values),
+    # yticks = 1e-1:2e-1:1.2,
+    xticklabelrotation = π/6,
+    xgridvisible = false,
+    ygridvisible = false,
+    # title = "NO₃⁻ Reduction Lengths Across Facies Types",
+    # titlefont = "Avenir Book",
+    titlesize = 21,
+    xlabelsize = 18,
+    ylabelsize = 14,
+    xticklabelsize = 16,
+    yticklabelsize = 16,
+    xticklabelcolor = fontcolor,
+    yticklabelcolor = fontcolor,
+    xticklabelfont = "Avenir Book",
+    yticklabelfont = "Avenir Book",
+    ylabelfont = "Avenir Book",
+    backgroundcolor = :transparent,
+    yscale = Makie.pseudolog10,
+    yminorticksvisible = true,
+    yminorticks = IntervalsBetween(5)
+    )
+ax2 = Axis(f[1, 1],
+    ylabel = "K [m/s]",
+    yaxisposition = :right,
+    yticks = [1e-7,5.0e-6,1e-5,1.5e-5],
+    xgridvisible = false,
+    ygridvisible = false,
+    xticksvisible = false,
+    xlabelsize = 0,
+    ylabelsize = 14,
+    xticklabelsize = 0,
+    yticklabelsize = 16,
+    xticklabelcolor = fontcolor,
+    yticklabelcolor = fontcolor,
+    ylabelfont = "Avenir Book",
+    xticklabelfont = "Avenir Book",
+    yticklabelfont = "Avenir Book",
+    backgroundcolor = :transparent,
+)
+#ylims!(ax, -1e-9, maximum(facies_result_len.max_length) + 1e-9)
+ylims!(ax2, -1e-6, 1.6e-5)
+hidespines!(ax2, :l, :b)
+linkxaxes!(ax, ax2)
+ax2.yreversed = true
+#hidedecorations!(ax2)
+hidespines!(ax, :t, :r)
+barplot!(ax, facies_result_model.facies_code, facies_result_model.mean_length, color = :steelblue)
+errorbars!(ax, facies_result_model.facies_code, facies_result_model.mean_length,
+    facies_result_model.mean_length-facies_result_model.min_length,
+    facies_result_model.max_length - facies_result_model.mean_length;
+    color = fontcolor, linewidth = 0.8, whiskerwidth = 12)
+barplot!(ax2, facies_result_model.facies_code, facies_result_model.k_result, color = :darkgrey)
+resize_to_layout!(f)
+f
+save("plots/length_to_reduce_model_v3.png", f)

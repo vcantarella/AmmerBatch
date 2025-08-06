@@ -6,6 +6,9 @@ using XLSX
 # using CairoMakie
 # load integration results
 int_df = CSV.read(datadir("exp_pro","linear_regression_params_v2.csv"), DataFrame)
+# Remove sample B7 from the dataframe: results have been discarded after intrinsic analysis
+int_df = int_df[int_df[!, :sample] .!= "B7", :]
+
 int_df[(int_df[!, :facies].=="C1").||(int_df[!, :facies].=="C2"), :facies] .= "C1"
 int_df[!, :exp] = [ifelse(int_df[i, :sample][1] == 'A', 'A', 'B') for i in 1:nrow(int_df)]
 # group by facies
@@ -33,7 +36,7 @@ labels = Dict(zip(unique_facies, label_values))
 fontcolor = "#474747"
 # Labeler = label_scientific()
 f = Figure()
-Label(f[2, 1, Top()], halign = :left, L"\times 10^{-4}", fontsize = 16,
+Label(f[2, 1, Top()], halign = :left, L"\times 10^{-4}", fontsize = 18,
     color = fontcolor, font = "Avenir Book", padding = (-60, 0, 0, 0))
 axa = Axis(f[2, 1],
     #xlabel = "Facies",
@@ -44,7 +47,7 @@ axa = Axis(f[2, 1],
     #yticks = 1e-1:2e-1:1.2,
     xgridvisible = false,
     ygridvisible = false,
-    title = "c. Experiment B - facies",
+    title = "c.",# Experiment B - facies",
     titlefont = "Avenir Book bold",
     titlesize = 20,
     titlealign = :left,
@@ -72,7 +75,7 @@ errorbars!(axa, facies_result[1].facies_code, facies_result[1].mean_r_no3.*1e4,
     facies_result[1].mean_r_no3.*1e4-facies_result[1].min_r_no3.*1e4,
     facies_result[1].max_r_no3.*1e4 - facies_result[1].mean_r_no3.*1e4;
     color = fontcolor, linewidth = 0.8, whiskerwidth = 12)
-Label(f[1, 1, Top()], halign = :left, L"\times 10^{-4}", fontsize = 16,
+Label(f[1, 1, Top()], halign = :left, L"\times 10^{-4}", fontsize = 18,
     color = fontcolor, font = "Avenir Book", padding = (-60, 0, 0, 0))
 axc = Axis(f[1, 1],
     #xlabel = "Facies",
@@ -83,7 +86,7 @@ axc = Axis(f[1, 1],
     #yticks = 1e-1:2e-1:1.2,
     xgridvisible = false,
     ygridvisible = false,
-    title = "a. Experiment A - facies",
+    title = "a.",# Experiment A - facies",
     titlefont = "Avenir Book bold",
     titlesize = 20,
     titlealign = :left,
@@ -110,14 +113,14 @@ errorbars!(axc, facies_result[2].facies_code, facies_result[2].mean_r_no3.*1e4,
     facies_result[2].mean_r_no3.*1e4-facies_result[2].min_r_no3.*1e4,
     facies_result[2].max_r_no3.*1e4 - facies_result[2].mean_r_no3.*1e4;
     color = fontcolor, linewidth = 0.8, whiskerwidth = 12)
-Label(f[2, 2, Top()], halign = :left, L"\times 10^{-4}", fontsize = 16, 
+Label(f[2, 2, Top()], halign = :left, L"\times 10^{-4}", fontsize = 18, 
     color = fontcolor, font = "Avenir Book", padding = (-70, 0, 0, 0))
 axb = Axis(f[2, 2],
     width = 400,
     height = 300,
     xlabel = "TOC [%]",
     ylabel = "r₀ [mol kg⁻¹ d⁻¹]",
-    title = "d. Experiment B - TOC",
+    title = "d.",# Experiment B - TOC",
     # xticks = (1:9, unique_facies),
     # yticks = 1e-1:2e-1:1.2,
     xgridvisible = false,
@@ -162,14 +165,14 @@ for facies in unique_facies
 end
 
 
-Label(f[1, 2, Top()], halign = :left, L"\times 10^{-4}", fontsize = 16, 
+Label(f[1, 2, Top()], halign = :left, L"\times 10^{-4}", fontsize = 18, 
     color = fontcolor, font = "Avenir Book", padding = (-70, 0, 0, 0))
 axd = Axis(f[1, 2],
     width = 400,
     height = 300,
     xlabel = "TOC [%]",
     ylabel = "r₀ [mol kg⁻¹ d⁻¹]",
-    title = "b. Experiment A - TOC",
+    title = "b.",# Experiment A - TOC",
     # xticks = (1:9, unique_facies),
     # yticks = 1e-1:2e-1:1.2,
     xgridvisible = false,

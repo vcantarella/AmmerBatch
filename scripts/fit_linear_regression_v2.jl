@@ -19,7 +19,9 @@ df_info_p2 = CSV.read(datadir("exp_pro","sample_info_part2.csv"), DataFrame)
 df_info = vcat(df_info, df_info_p2)
 late_times_params = DataFrame(sample = String[], facies = String[], r_no3 = Float64[], c₀ = Float64[], R² = Float64[], t_zeroorder = Float64[],
                               integral_no3 = Float64[], c_quick = Float64[], t_quick = Float64[],
-                              weight = Float64[], TOC = Union{Missing, Float64}[])
+                              weight = Float64[], TOC = Union{Missing, Float64}[], S_tot = Union{Missing, Float64}[],
+                              c₀so4 = Union{Missing, Float64}[], r_so4 = Union{Missing, Float64}[],
+                              R²so4 = Union{Missing, Float64}[])
 samples = df_info[!, :Sample]
 
 # Besides a grapth for each integration I want to add the axis to larger grid plots (according to size of the number of plots there may be more than on plot)
@@ -139,7 +141,8 @@ for i in 1:total_plots
     SST = sum((y .- ȳ).^2)
     SSR = sum(ϵ.^2)
     R² = 1 - SSR/SST
-    
+    r_no3 = -β[2] # slope of the NO₃⁻ reduction
+    c0 = β[1] # initial concentration of NO₃⁻
     model_no3(t) = β[1] + β[2]*t
     # calculate when data intercepts the model:
     println("Sample: $(sample)")
@@ -156,9 +159,33 @@ for i in 1:total_plots
    
     t_quick = t_change > 0 ? resulting_integral/c_quick : 0.0
     facies = df_info[df_info[!, :Sample] .== sample, "Facies"][1]
-    push!(late_times_params, [sample, facies, -β[2], β[1], R², t_change, 
+    TOC = df_info[df_info[!, :Sample] .== sample, "TOC %"][1]
+    S_tot = df_info[df_info[!, :Sample] .== sample, "S_tot %"][1]
+    if sample[1] == 'B' # then we also have sulfate data
+        X = [ones(size(modelled_times)) modelled_times]
+        y = so4_mol_kg
+        # linear regression and model fit results:
+        β = (X'X)\(X'y)
+        ϵ = y - X*β
+        s² = ϵ'ϵ/(length(y)-length(β))
+        σ² = s²*(length(y)-length(β))/length(y)
+        ȳ = mean(y)
+        SST = sum((y .- ȳ).^2)
+        SSR = sum(ϵ.^2)
+        #R² = 
+        so4_fit(t) = β[1] + β[2]*t
+        so4_c0 = β[1]
+        so4_r = β[2]
+        R²so4 = 1 - SSR/SST
+    else
+        so4_c0 = missing
+        so4_r = missing
+        R²so4 = missing
+    end
+    push!(late_times_params, [sample, facies, r_no3, c0, R², t_change, 
                               resulting_integral, c_quick, t_quick,
-                              mass, df_info[df_info[!, :Sample] .== sample, "TOC %"][1]])
+                              mass, TOC, S_tot,
+                              so4_c0, so4_r, R²so4])
 
     
     # 2 cols and 4 rows
