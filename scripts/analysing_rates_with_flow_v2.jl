@@ -201,11 +201,13 @@ println("DONE!")
 
 
 
+
 f = Figure()
 ax = Axis(f[2, 1],
     xlabel = "Facies",
     ylabel = "length to reduce 50 mg L⁻¹ NO₃⁻ [m]",
     xticks = (1:8, label_values),
+    yticks = LogTicks(-2:1),
     # yticks = 1e-1:2e-1:1.2,
     xticklabelrotation = π/6,
     xgridvisible = false,
@@ -223,7 +225,7 @@ ax = Axis(f[2, 1],
     yticklabelfont = "Avenir Book",
     ylabelfont = "Avenir Book",
     backgroundcolor = :transparent,
-    yscale = Makie.pseudolog10,
+    yscale = log10,
     yminorticksvisible = true,
     yminorticks = IntervalsBetween(5)
     )
