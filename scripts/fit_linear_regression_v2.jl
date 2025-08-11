@@ -142,17 +142,17 @@ for i in 1:total_plots
     SSR = sum(ϵ.^2)
     R² = 1 - SSR/SST
     r_no3 = -β[2] # slope of the NO₃⁻ reduction
-    c0 = β[1] # initial concentration of NO₃⁻
-    model_no3(t) = β[1] + β[2]*t
+    c0_model = β[1] # initial concentration of NO₃⁻
+    model_no3(t) = c0_model - r_no3*t
     # calculate when data intercepts the model:
     println("Sample: $(sample)")
 
     t_of_zero = t_change > 0 ? find_zeros(t-> no3_fit(t)-model_no3(t), 0, 150)[1] : 0.0
     # calculate and plot the integral using Trapz
     integral_no3 = quadgk(no3_fit, 0.0, t_of_zero)[1]
-    c0 = no3_fit(0.0) # initial concentration
-    c_quick = t_change > 0 ? c0 - β[1] : 0.0
-    
+    c0_data = no3_fit(0.0) # initial concentration
+    c_quick = t_change > 0 ? c0_data - c0_model : 0.0
+
     integral_function = quadgk(model_no3, 0.0, t_of_zero)[1]
     # trapz(times_n, model_no3.(times_n))
     resulting_integral = (integral_no3 - integral_function)
@@ -182,7 +182,7 @@ for i in 1:total_plots
         so4_r = missing
         R²so4 = missing
     end
-    push!(late_times_params, [sample, facies, r_no3, c0, R², t_change, 
+    push!(late_times_params, [sample, facies, r_no3, c0_model, R², t_change, 
                               resulting_integral, c_quick, t_quick,
                               mass, TOC, S_tot,
                               so4_c0, so4_r, R²so4])
@@ -219,5 +219,6 @@ for i in 1:total_plots
     #Label(grid_plot_figs[grid_plot_num][1,1:2, Top()], "Normalized NO3- and DOC plots", fontsize = 18, halign = :center)
 end
 [resize_to_layout!(grid_plot_figs[i]) for i in 1:grid_plots]
-[save(plotsdir("grid_plot_temp_$(i).png"), grid_plot_figs[i], px_per_unit = 400/inch) for i in 1:grid_plots]
+[save(plotsdir("grid_plot_$(i).png"), grid_plot_figs[i], px_per_unit = 400/inch) for i in 1:grid_plots]
+[save(plotsdir("grid_plot_$(i).pdf"), grid_plot_figs[i], px_per_unit = 400/inch) for i in 1:grid_plots]
 CSV.write(datadir("exp_pro","linear_regression_params_v2.csv"), late_times_params)
