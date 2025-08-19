@@ -1,5 +1,7 @@
 # Supporting Code for: Is the denitrification potential of floodplain sediments controlled by their organic carbon contents?
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.16903197.svg)](https://doi.org/10.5281/zenodo.16903197)
+
 
 This code base is using the [Julia Language](https://julialang.org/) and
 [DrWatson](https://juliadynamics.github.io/DrWatson.jl/stable/)
