@@ -1,3 +1,38 @@
+#=
+This script is designed to generate a specific, illustrative plot for a single sample ("A308")
+to be used as a background for a figure in the manuscript. The plot explains the concept
+of zero-order late-time behavior in the batch experiments.
+
+The script performs an analysis similar to `fit_linear_regression_v2.jl`, but is
+hardcoded to process only the data for sample "A308".
+
+The main steps are:
+1.  **Load Data**:
+    - It loads the sample information and the processed data for sample "A308" from the
+      `data/exp_pro` directory.
+2.  **Data Correction**:
+    - It corrects the concentration data for the volume of water removed during sampling,
+      just as in the main regression script.
+3.  **Identify Zero-Order Phase and Fit Model**:
+    - It identifies the time at which the reaction becomes zero-order by analyzing the DOC
+      concentration.
+    - It performs a linear regression on the nitrate concentration data for the zero-order
+      phase to determine the reaction rate and model parameters.
+4.  **Generate Plot**:
+    - It creates a single, high-quality plot that visualizes:
+        - The raw data for nitrate and DOC concentrations.
+        - The fitted zero-order model for nitrate reduction.
+        - The average DOC concentration during the zero-order phase.
+        - A shaded area representing the difference between the data and the model,
+          illustrating the initial, non-zero-order phase.
+5.  **Save Plot**:
+    - The resulting plot is saved in multiple high-quality formats (SVG, PDF, and PNG) in
+      the `plots` directory. The file is named `zero_order_explanation`.
+
+This script provides a clear visual explanation of the data analysis method used in the study,
+making it a valuable component for the publication.
+=#
+
 using DrWatson
 @quickactivate "AmmerBatch"
 using Roots

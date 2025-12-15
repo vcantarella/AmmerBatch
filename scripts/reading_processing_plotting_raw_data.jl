@@ -1,3 +1,24 @@
+#=
+This script reads the raw experimental data from Excel files (`.xlsx`) located in `data/exp_raw`.
+It processes the data from two separate experimental parts, converts units, and saves the
+processed data into individual CSV and JLS files for each sample in `data/exp_pro`.
+It also generates initial concentration plots for each sample and saves them in the `plots` folder.
+
+This script combines the processing of two parts of the experiment.
+Part 1 reads from `johann_batch_preprocessed.xlsx`.
+Part 2 reads from `johann_batch_preprocessed_part2.xlsx`.
+
+For each part, it performs the following steps:
+1.  Reads sample information and time-series data.
+2.  Iterates over different chemical measurements (e.g., NO3, DOC, SO4).
+3.  For each measurement, it reads the data, transposes it, and sets appropriate column names.
+4.  It converts the concentration units to mmol/L.
+5.  Saves the processed data for each sample into `.csv` and `.jls` files in the `data/exp_pro` directory.
+6.  Generates and saves a plot of the initial data for each sample in the `plots` directory.
+
+Finally, it saves the sample information for both parts into separate CSV files in `data/exp_pro`.
+=#
+
 using DrWatson
 @quickactivate "AmmerBatch"
 

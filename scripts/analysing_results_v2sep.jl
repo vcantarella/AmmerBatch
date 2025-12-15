@@ -1,3 +1,34 @@
+#=
+This script is for analyzing and visualizing the results obtained from the linear regression
+analysis performed in `fit_linear_regression_v2.jl`. It generates plots for the publication
+that summarize the nitrate reduction rates (`r_no3`) and their relationship with Total
+Organic Carbon (TOC).
+
+The main steps of the script are:
+1.  **Load Data**:
+    - It loads the results of the linear regression from `data/exp_pro/linear_regression_params_v2.csv`.
+    - It removes a specific sample ('B7') that was discarded after intrinsic analysis.
+2.  **Data Processing**:
+    - It separates the data into two experiments, 'A' and 'B', based on the sample names.
+    - It groups the data by experiment and facies and calculates summary statistics
+      (mean, std, min, max) for the nitrate reduction rate (`r_no3`).
+3.  **Generate Plots**:
+    - It creates a composite figure with four subplots to visualize the results:
+        - Two bar plots showing the mean `r_no3` for each facies, separated by experiment.
+          Error bars represent the min and max values.
+        - Two scatter plots showing the relationship between `r_no3` and TOC for each
+          experiment. Each facies is represented by a different color.
+    - It fits a linear regression model to the `r_no3` vs. TOC data for each experiment
+      and plots the regression line on the scatter plots.
+4.  **Save Results**:
+    - The generated figure is saved in multiple formats (PNG, SVG, PDF) in the `plots` directory.
+    - The summary statistics of the reaction rates by facies are saved to a CSV file at
+      `data/exp_pro/facies_results.csv`.
+
+This script is crucial for interpreting the experimental results and presenting them in a
+clear and concise way for the publication.
+=#
+
 using DrWatson
 @quickactivate "AmmerBatch"
 using Tidier, DataFrames, CSV, Statistics

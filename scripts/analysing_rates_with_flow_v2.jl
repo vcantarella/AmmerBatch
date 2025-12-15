@@ -1,3 +1,39 @@
+#=
+This script analyzes the reaction rates obtained from the `fit_linear_regression_v2.jl`
+script and combines them with external data on groundwater flow to estimate the length
+required for denitrification within different geological facies.
+
+The main steps of the script are:
+1.  **Load Data**:
+    - It loads the linear regression results, which include the zero-order nitrate
+      reduction rates (`r_no3`), from `data/exp_pro/linear_regression_params_v2.csv`.
+    - It loads external data on porosity (`velocity_facies_v2.csv`) and specific
+      discharge (`q_facies.csv`) for each facies from the `data/external` directory.
+2.  **Calculate Physical Properties**:
+    - It calculates the solid density (`ρₛ`) and bulk density (`ρᵦ`) of the sediments
+      based on Total Organic Carbon (TOC) content.
+3.  **Calculate Denitrification Length**:
+    - It calculates the theoretical length (`length_to_reduce`) required to completely
+      denitrify a given initial concentration of nitrate (50 mg/L) for each sample.
+      This calculation uses the measured reaction rates and physical properties, along with
+      a calculated specific discharge (`q`).
+    - It also calculates a `length_model` using specific discharge values from a model.
+4.  **Group by Facies**:
+    - The results are grouped by facies, and summary statistics (mean, std, min, max)
+      for the denitrification length are calculated for each facies.
+5.  **Generate Plots**:
+    - It generates several plots to visualize the results:
+        - `length_to_reduce_v2.png`: A bar plot showing the mean denitrification length
+          for each facies, with error bars representing the min and max values.
+        - `length_to_reduce_model_v2.png` and `length_to_reduce_model_v3.png`:
+          Similar plots, but using the model-based specific discharge and with different styling.
+    - These plots are saved in the `plots` directory.
+
+The script's output helps to understand how the denitrification potential, represented by
+the reaction rates, translates into an effective denitrification capacity at the field scale,
+considering the hydrogeological properties of the different facies.
+=#
+
 using DrWatson
 @quickactivate "AmmerBatch"
 using Tidier, DataFrames, CSV, Statistics

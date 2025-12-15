@@ -1,3 +1,34 @@
+#=
+This script analyzes the relationship between the rates of nitrate reduction (`r_no3`)
+and sulfate reduction (`r_so4`) from the batch experiments. The goal is to investigate
+the correlation between these two processes and compare the observed rate ratios to
+theoretical stoichiometric ratios.
+
+The main steps of the script are:
+1.  **Load Data**:
+    - It loads the results of the linear regression analysis, which includes the rates
+      of nitrate and sulfate reduction, from `data/exp_pro/linear_regression_params_v2.csv`.
+2.  **Data Processing**:
+    - It extracts the `r_no3` and `r_so4` columns and filters out missing values for `r_so4`.
+    - It calculates the ratio of sulfate reduction rate to nitrate reduction rate (`r_so4_no3`).
+3.  **Statistical Analysis**:
+    - It performs a linear regression between `r_no3` and `r_so4` to quantify the
+      relationship between the two rates. The results of the linear model are printed
+      to the console.
+4.  **Generate Plots**:
+    - It creates a scatter plot of `r_no3` versus `r_so4`, with each point colored
+      according to its geological facies.
+    - It overlays theoretical stoichiometric ratio lines for different sulfur-based
+      electron donors (e.g., FeS, FeS2, S0) on the scatter plot. This allows for a
+      visual comparison between the observed rate ratios and the expected ratios based
+      on different chemical reactions.
+5.  **Save Plots**:
+    - The generated plot is saved in both PNG and SVG formats in the `plots` directory.
+
+This analysis helps to elucidate the underlying biogeochemical processes by exploring
+the coupling between the nitrogen and sulfur cycles in the studied sediments.
+=#
+
 using DrWatson
 @quickactivate "AmmerBatch"
 using Tidier, DataFrames, CSV, Statistics
